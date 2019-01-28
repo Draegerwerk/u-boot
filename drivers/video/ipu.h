@@ -175,6 +175,11 @@ typedef union {
 	} mem_dp_fg_sync;
 } ipu_channel_params_t;
 
+enum ipu_irq_line {
+	IPU_IRQ_DP_SF_END = 448 + 3,
+	IPU_IRQ_DC_FC_1 = 448 + 9,
+};
+
 /*
  * Bitfield of Display Interface signal polarities.
  */

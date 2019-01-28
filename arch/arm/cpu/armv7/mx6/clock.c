@@ -573,6 +573,32 @@ int do_mx6_showclocks(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return 0;
 }
 
+#ifdef CONFIG_SECURE_BOOT
+void hab_caam_clock_enable(unsigned char enable)
+{
+	u32 reg;
+
+	/* CG4 ~ CG6, CAAM clocks */
+	reg = __raw_readl(&imx_ccm->CCGR0);
+	if (enable)
+		reg |= (MXC_CCM_CCGR0_CAAM_WRAPPER_IPG_MASK |
+			MXC_CCM_CCGR0_CAAM_WRAPPER_ACLK_MASK |
+			MXC_CCM_CCGR0_CAAM_SECURE_MEM_MASK);
+	else
+		reg &= ~(MXC_CCM_CCGR0_CAAM_WRAPPER_IPG_MASK |
+			MXC_CCM_CCGR0_CAAM_WRAPPER_ACLK_MASK |
+			MXC_CCM_CCGR0_CAAM_SECURE_MEM_MASK);
+	__raw_writel(reg, &imx_ccm->CCGR0);
+
+	/* EMI slow clk */
+	reg = __raw_readl(&imx_ccm->CCGR6);
+	if (enable)
+		reg |= MXC_CCM_CCGR6_EMI_SLOW_MASK;
+	else
+		reg &= ~MXC_CCM_CCGR6_EMI_SLOW_MASK;
+	__raw_writel(reg, &imx_ccm->CCGR6);
+}
+#endif
 void enable_ipu_clock(void)
 {
 	struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;

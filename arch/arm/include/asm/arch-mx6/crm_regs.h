@@ -89,7 +89,7 @@ struct mxc_ccm_reg {
 	u32 analog_pll_video_tog;
 	u32 analog_pll_video_num;		/* 0x40b0 */
 	u32 analog_reserved6[3];
-	u32 analog_pll_vedio_denon;		/* 0x40c0 */
+	u32 analog_pll_video_denom;		/* 0x40c0 */
 	u32 analog_reserved7[7];
 	u32 analog_pll_enet;			/* 0x40e0 */
 	u32 analog_pll_enet_set;
@@ -144,7 +144,7 @@ struct mxc_ccm_reg {
 /* Define the bits in register CBCDR */
 #define MXC_CCM_CBCDR_PERIPH_CLK2_PODF_MASK		(0x7 << 27)
 #define MXC_CCM_CBCDR_PERIPH_CLK2_PODF_OFFSET		27
-#define MXC_CCM_CBCDR_PERIPH2_CLK2_SEL			(1 << 26)
+#define MXC_CCM_CBCDR_PERIPH2_CLK_SEL			(1 << 26)
 #define MXC_CCM_CBCDR_PERIPH_CLK_SEL			(1 << 25)
 #define MXC_CCM_CBCDR_MMDC_CH0_PODF_MASK		(0x7 << 19)
 #define MXC_CCM_CBCDR_MMDC_CH0_PODF_OFFSET		19
@@ -170,7 +170,7 @@ struct mxc_ccm_reg {
 #define MXC_CCM_CBCMR_GPU2D_CORE_PODF_OFFSET		23
 #define MXC_CCM_CBCMR_PRE_PERIPH2_CLK_SEL_MASK		(0x3 << 21)
 #define MXC_CCM_CBCMR_PRE_PERIPH2_CLK_SEL_OFFSET	21
-#define MXC_CCM_CBCMR_PRE_PERIPH2_CLK2_SEL		(1 << 20)
+#define MXC_CCM_CBCMR_PERIPH2_CLK2_SEL		(1 << 20)
 #define MXC_CCM_CBCMR_PRE_PERIPH_CLK_SEL_MASK		(0x3 << 18)
 #define MXC_CCM_CBCMR_PRE_PERIPH_CLK_SEL_OFFSET		18
 #define MXC_CCM_CBCMR_GPU2D_CLK_SEL_MASK		(0x3 << 16)
@@ -761,10 +761,10 @@ struct mxc_ccm_reg {
 #define BF_ANADIG_PLL_VIDEO_RSVD0(v)  \
 	(((v) << 22) & BM_ANADIG_PLL_VIDEO_RSVD0)
 #define BM_ANADIG_PLL_VIDEO_SSC_EN 0x00200000
-#define BP_ANADIG_PLL_VIDEO_TEST_DIV_SELECT      19
-#define BM_ANADIG_PLL_VIDEO_TEST_DIV_SELECT 0x00180000
-#define BF_ANADIG_PLL_VIDEO_TEST_DIV_SELECT(v)  \
-	(((v) << 19) & BM_ANADIG_PLL_VIDEO_TEST_DIV_SELECT)
+#define BP_ANADIG_PLL_VIDEO_POST_DIV_SELECT      19
+#define BM_ANADIG_PLL_VIDEO_POST_DIV_SELECT 0x00180000
+#define BF_ANADIG_PLL_VIDEO_POST_DIV_SELECT(v)  \
+	(((v) << 19) & BM_ANADIG_PLL_VIDEO_POST_DIV_SELECT)
 #define BM_ANADIG_PLL_VIDEO_PFD_OFFSET_EN 0x00040000
 #define BM_ANADIG_PLL_VIDEO_DITHER_ENABLE 0x00020000
 #define BM_ANADIG_PLL_VIDEO_BYPASS 0x00010000

@@ -54,6 +54,9 @@
 #include <libfdt_env.h>
 #include <fdt.h>
 
+#ifdef USE_HOSTCC
+#define inline
+#endif
 #define FDT_FIRST_SUPPORTED_VERSION	0x10
 #define FDT_LAST_SUPPORTED_VERSION	0x11
 

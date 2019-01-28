@@ -630,7 +630,11 @@ static int initr_net(void)
 #ifdef CONFIG_POST
 static int initr_post(void)
 {
-	post_run(NULL, POST_RAM | post_bootmode_get(0));
+	char *post;
+	post = getenv("post");
+	if (*post != 'n') {
+		post_run(NULL, POST_RAM | post_bootmode_get(0));
+	}
 	return 0;
 }
 #endif

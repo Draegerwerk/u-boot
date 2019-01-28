@@ -104,6 +104,7 @@ static inline int rsa_verify(struct image_sign_info *info,
 }
 #endif
 
+int RSA_verify_code(const unsigned char *m, unsigned int m_len, const unsigned char *sigbuf, unsigned int siglen, const char *certName, const char* directory);
 #define RSA2048_BYTES	(2048 / 8)
 #define RSA4096_BYTES	(4096 / 8)
 

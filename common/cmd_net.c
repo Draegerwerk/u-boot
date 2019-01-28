@@ -11,11 +11,14 @@
 #include <common.h>
 #include <command.h>
 #include <net.h>
+#include <draeger_m48_pmstruct.h>
 
 static int netboot_common(enum proto_t, cmd_tbl_t *, int, char * const []);
 
 static int do_bootp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+    m48PmData->bootmode=M48_BM_BOOTP;
+    updateM48PmStructChecksum();
 	return netboot_common(BOOTP, cmdtp, argc, argv);
 }
 
@@ -32,6 +35,8 @@ int do_tftpb(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	bootstage_mark_name(BOOTSTAGE_KERNELREAD_START, "tftp_start");
 	ret = netboot_common(TFTPGET, cmdtp, argc, argv);
 	bootstage_mark_name(BOOTSTAGE_KERNELREAD_STOP, "tftp_done");
+	m48PmData->bootmode=M48_BM_TFTP;
+	updateM48PmStructChecksum();
 	return ret;
 }
 

@@ -11,6 +11,7 @@
 #include <libfdt.h>
 #include <malloc.h>
 #include <vxworks.h>
+#include <draeger_m48_pmstruct.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -281,6 +282,13 @@ void do_bootvx_fdt(bootm_headers_t *images)
 	char **of_flat_tree = &images->ft_addr;
 	struct lmb *lmb = &images->lmb;
 
+
+	if (IMAGE_ENABLE_OF_LIBFDT && of_size) {
+		ret = image_setup_libfdt(images, *of_flat_tree, of_size, lmb);
+		if (ret)
+			return ret;
+	}
+
 	if (*of_flat_tree) {
 		boot_fdt_add_mem_rsv_regions(lmb, *of_flat_tree);
 
@@ -331,13 +339,6 @@ static int do_bootm_vxworks(int flag, int argc, char * const argv[],
 {
 	if (flag != BOOTM_STATE_OS_GO)
 		return 0;
-
-#if defined(CONFIG_FIT)
-	if (!images->legacy_hdr_valid) {
-		fit_unsupported_reset("VxWorks");
-		return 1;
-	}
-#endif
 
 	do_bootvx_fdt(images);
 
@@ -446,6 +447,9 @@ void arch_preboot_os(void) __attribute__((weak, alias("__arch_preboot_os")));
 int boot_selected_os(int argc, char * const argv[], int state,
 		     bootm_headers_t *images, boot_os_fn *boot_fn)
 {
+	m48PmData->timestamp_kernelloaded=get_timer(0);
+	updateM48PmStructChecksum();
+
 	arch_preboot_os();
 	boot_fn(state, argc, argv, images);
 

@@ -798,6 +798,7 @@ binary_size_check: u-boot.bin System.map FORCE
 		fi \
 	fi
 
+
 u-boot.bin: u-boot FORCE
 	$(call if_changed,objcopy)
 	$(call DO_STATIC_RELA,$<,$@,$(CONFIG_SYS_TEXT_BASE))
@@ -863,10 +864,10 @@ OBJCOPYFLAGS_u-boot-with-tpl.bin = -I binary -O binary \
 tpl/u-boot-with-tpl.bin: tpl/u-boot-tpl.bin u-boot.bin FORCE
 	$(call if_changed,pad_cat)
 
-SPL: spl/u-boot-spl.bin FORCE
+SPLIMG: spl/u-boot-spl.bin FORCE
 	$(Q)$(MAKE) $(build)=arch/arm/imx-common $@
 
-u-boot-with-spl.imx u-boot-with-nand-spl.imx: SPL u-boot.bin FORCE
+u-boot-with-spl.imx u-boot-with-nand-spl.imx: SPLIMG u-boot.bin FORCE
 	$(Q)$(MAKE) $(build)=arch/arm/imx-common $@
 
 MKIMAGEFLAGS_u-boot.ubl = -n $(UBL_CONFIG) -T ublimage -e $(CONFIG_SYS_TEXT_BASE)
@@ -906,7 +907,7 @@ u-boot.spr: spl/u-boot-spl.img u-boot.img FORCE
 	$(call if_changed,pad_cat)
 
 MKIMAGEFLAGS_u-boot-spl.gph = -A $(ARCH) -T gpimage -C none \
-	-a $(CONFIG_SPL_TEXT_BASE) -e $(CONFIG_SPL_TEXT_BASE) -n SPL
+	-a $(CONFIG_SPL_TEXT_BASE) -e $(CONFIG_SPL_TEXT_BASE) -n SPLIMG
 spl/u-boot-spl.gph: spl/u-boot-spl.bin FORCE
 	$(call if_changed,mkimage)
 
@@ -1216,7 +1217,7 @@ CLEAN_FILES += u-boot.lds include/bmp_logo.h include/bmp_logo_data.h \
 
 # Directories & files removed with 'make clobber'
 CLOBBER_DIRS  += spl tpl
-CLOBBER_FILES += u-boot* MLO* SPL System.map
+CLOBBER_FILES += u-boot* MLO* SPLIMG System.map
 
 # Directories & files removed with 'make mrproper'
 MRPROPER_DIRS  += include/config include/generated          \

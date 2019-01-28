@@ -394,6 +394,9 @@ void v7_outer_cache_enable(void)
 	}
 #endif
 
+	/* Must disable the L2 before changing the latency parameters */
+	clrbits_le32(&pl310->pl310_ctrl, L2X0_CTRL_EN);
+
 	writel(0x132, &pl310->pl310_tag_latency_ctrl);
 	writel(0x132, &pl310->pl310_data_latency_ctrl);
 
@@ -412,9 +415,9 @@ void v7_outer_cache_enable(void)
 	 * double linefill feature. This is the default behavior.
 	 */
 
-#ifndef CONFIG_MX6Q
-	val |= 0x40800000;
-#endif
+    if (! is_cpu_type(MXC_CPU_MX6Q)) {
+        val |= 0x40800000;
+    }
 	writel(val, &pl310->pl310_prefetch_ctrl);
 
 	val = readl(&pl310->pl310_power_ctrl);

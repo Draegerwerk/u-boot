@@ -85,7 +85,7 @@ enum {
 };
 
 static unsigned long default_bpp = 16;
-static unsigned char g_dp_in_use;
+static unsigned char g_dp_in_use = 0;
 static struct fb_info *mxcfb_info[3];
 static int ext_clk_used;
 
@@ -428,6 +428,7 @@ static int mxcfb_map_video_memory(struct fb_info *fbi)
 
 static int mxcfb_unmap_video_memory(struct fb_info *fbi)
 {
+	free(fbi->screen_base);
 	fbi->screen_base = 0;
 	fbi->fix.smem_start = 0;
 	fbi->fix.smem_len = 0;
@@ -578,6 +579,9 @@ void ipuv3_fb_shutdown(void)
 			struct mxcfb_info *mxc_fbi = fbi->par;
 			ipu_disable_channel(mxc_fbi->ipu_ch);
 			ipu_uninit_channel(mxc_fbi->ipu_ch);
+			mxcfb_unmap_video_memory(fbi);
+			free (fbi);
+			mxcfb_info[i] = NULL;
 		}
 	}
 	for (i = 0; i < ARRAY_SIZE(stat->int_stat); i++) {
@@ -586,9 +590,12 @@ void ipuv3_fb_shutdown(void)
 	}
 }
 
+
 void *video_hw_init(void)
 {
 	int ret;
+
+	enable_pll5 (gmode->pixclock);
 
 	ret = ipu_probe();
 	if (ret)

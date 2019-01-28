@@ -11,3 +11,7 @@
 #define MXC_CPU_MX6SOLO		0x62
 #define MXC_CPU_MX6Q		0x63
 #define MXC_CPU_MX6D		0x64
+#define MXC_CPU_MX6DP		0x68
+#define MXC_CPU_MX6QP		0x69
+#define MXC_CPU_MX6SX		0x62
+#define MXC_CPU_MX6UL		0x64

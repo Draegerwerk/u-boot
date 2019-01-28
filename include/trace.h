@@ -7,6 +7,9 @@
 #ifndef __TRACE_H
 #define __TRACE_H
 
+#ifdef USE_HOSTCC
+#define inline
+#endif
 enum {
 	/*
 	 * This affects the granularity of our trace. We can bin function

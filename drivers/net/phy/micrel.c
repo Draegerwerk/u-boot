@@ -155,6 +155,18 @@ static struct phy_driver ksz9021_driver = {
 /* PHY Registers */
 #define MII_KSZ9031_MMD_ACCES_CTRL	0x0d
 #define MII_KSZ9031_MMD_REG_DATA	0x0e
+#define MII_KSZ9031_BMCR_POWDOWN    0x0800
+int ksz9031_phy_config(struct phy_device *phydev)
+{
+    uint16_t val;
+
+    /* Check if the PHY is in power down mode */
+    val = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMCR);
+    if (MII_KSZ9031_BMCR_POWDOWN & val)
+        phy_write (phydev, MDIO_DEVAD_NONE, MII_BMCR, val & ~MII_KSZ9031_BMCR_POWDOWN);
+
+    return genphy_config (phydev);
+}
 
 /* Accessors to extended registers*/
 int ksz9031_phy_extended_write(struct phy_device *phydev,
@@ -206,7 +218,7 @@ static struct phy_driver ksz9031_driver = {
 	.uid  = 0x221620,
 	.mask = 0xfffff0,
 	.features = PHY_GBIT_FEATURES,
-	.config   = &genphy_config,
+	.config   = &ksz9031_phy_config,
 	.startup  = &ksz90xx_startup,
 	.shutdown = &genphy_shutdown,
 	.writeext = &ksz9031_phy_extwrite,

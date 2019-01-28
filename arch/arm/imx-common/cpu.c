@@ -20,13 +20,27 @@
 #include <fsl_esdhc.h>
 #endif
 
-char *get_reset_cause(void)
+#define RESET_CAUSE_UNDEF ~(0)
+
+static u32 cause = RESET_CAUSE_UNDEF;
+
+u32 get_reset_cause_num(void)
 {
-	u32 cause;
+
 	struct src *src_regs = (struct src *)SRC_BASE_ADDR;
 
-	cause = readl(&src_regs->srsr);
-	writel(cause, &src_regs->srsr);
+	if (cause == RESET_CAUSE_UNDEF) {
+		cause = readl(&src_regs->srsr);
+		writel(cause, &src_regs->srsr);
+	}
+
+	return cause;
+}
+
+
+char *get_reset_cause(void)
+{
+	u32 cause = get_reset_cause_num();
 
 	switch (cause) {
 	case 0x00001:

@@ -286,8 +286,8 @@ static void do_config_file(const char *filename)
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
-		fprintf(stderr, "fixdep: error opening config file: ");
-		perror(filename);
+		fprintf(stderr, "fixdep: error opening config file: <%s>", filename);
+		perror(NULL);
 		exit(2);
 	}
 	fstat(fd, &st);
@@ -328,11 +328,11 @@ static void parse_dep_file(void *map, size_t len)
 
 	while (m < end) {
 		/* Skip any "white space" */
-		while (m < end && (*m == ' ' || *m == '\\' || *m == '\n'))
+		while (m < end && (*m == ' ' || *m == '\\' || *m == '\n' || *m == '\r'))
 			m++;
 		/* Find next "white space" */
 		p = m;
-		while (p < end && *p != ' ' && *p != '\\' && *p != '\n')
+		while (p < end && *p != ' ' && *p != '\\' && *p != '\n' && *p != '\r')
 			p++;
 		/* Is the token we found a target name? */
 		is_target = (*(p-1) == ':');
@@ -377,7 +377,7 @@ static void parse_dep_file(void *map, size_t len)
 					is_first_dep = 0;
 				} else
 					printf("  %s \\\n", s);
-				do_config_file(s);
+				if (p-m > 0) do_config_file(s);
 			}
 		}
 		/*
@@ -404,8 +404,8 @@ static void print_deps(void)
 
 	fd = open(depfile, O_RDONLY);
 	if (fd < 0) {
-		fprintf(stderr, "fixdep: error opening depfile: ");
-		perror(depfile);
+		fprintf(stderr, "fixdep: error opening depfile: <%s>", depfile);
+		perror(NULL);
 		exit(2);
 	}
 	if (fstat(fd, &st) < 0) {

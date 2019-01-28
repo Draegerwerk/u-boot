@@ -142,6 +142,8 @@ void spl_mmc_load_image(void)
 		hang();
 	}
 
-	if (err)
+	if (err) {
+        puts("spl: load image failed\n");
 		hang();
+	}
 }

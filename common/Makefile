@@ -15,6 +15,8 @@ ifdef CONFIG_SYS_HUSH_PARSER
 obj-y += cli_hush.o
 endif
 
+obj-$(CONFIG_CMD_BLOB) += cmd_blob.o
+
 # We always have this since drivers/ddr/fs/interactive.c needs it
 obj-y += cli_simple.o
 
