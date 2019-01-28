@@ -33,6 +33,7 @@
 typedef struct {
     ulong magicConstant;
     ulong	 remoteDelay;
+    uint32_t verboseBoot;
     uint32_t checkSum;
     uint32_t data_size; /* size of checksum area (size of data structure without magicConstant and checksum) */
     uint32_t bootmode;
@@ -56,25 +57,20 @@ typedef struct {
         uint16_t magic;
         uint16_t state;
     } post_board_reset;
-    uint32_t startType;
-} PmBootData;
-
-typedef struct {
-    uint32_t  magicConstant;
-    uint32_t  pmGood;
     struct
     {
         uint32_t result;
         uint32_t magic;
     } post_scriptTest;
-    uint32_t  reserved;
-    uint32_t  checkSum;
-    /* +++ fields without checksum +++ */
-    uint32_t  verboseBoot;
-} PmBspData;
+    struct
+    {
+        uint32_t result;
+        uint32_t magic;
+    } post_pmTest;
+    uint32_t startType;
+} PmBootData;
 
 extern PmBootData* m48PmData;
-extern PmBspData * m48PmBspData;
 extern char*       m48PmUsrData;
 
 /* call this after modifying the PmBootData data structure */

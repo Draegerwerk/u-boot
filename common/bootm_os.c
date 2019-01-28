@@ -447,7 +447,21 @@ void arch_preboot_os(void) __attribute__((weak, alias("__arch_preboot_os")));
 int boot_selected_os(int argc, char * const argv[], int state,
 		     bootm_headers_t *images, boot_os_fn *boot_fn)
 {
-	m48PmData->timestamp_kernelloaded=get_timer(0);
+    /* hack: m48PmData->timestamp_kernelloaded contains the time from
+    *       last POST reset to t_post_done. Therefore the entire kernel load time
+    *       is "current time - timestamp_kernelloaded + timestamp_post
+    *
+    *                             |-------------------- get_timer(0) -------------------|
+    * 0----->t_reset_by_up1       v                                                     |
+    * ^             0--------->t_reset_by_self (up2)                                    v
+    * |                           0--------------------->t_post_done-------------->t_kernelloaded
+    * |                           ^                            ^
+    * |                           |-- timestamp_kernelloaded --|
+    * |                                                        |
+    * |-------------------- timestamp_post --------------------|
+    *
+    */
+    m48PmData->timestamp_kernelloaded=get_timer(m48PmData->timestamp_kernelloaded) + m48PmData->timestamp_post;
 	updateM48PmStructChecksum();
 
 	arch_preboot_os();

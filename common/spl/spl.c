@@ -139,14 +139,6 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 			CONFIG_SYS_SPL_MALLOC_SIZE);
 #endif
 
-#ifndef CONFIG_PPC
-	/*
-	 * timer_init() does not exist on PPC systems. The timer is initialized
-	 * and enabled (decrementer) in interrupt_init() here.
-	 */
-	timer_init();
-#endif
-
 #ifdef CONFIG_SPL_BOARD_INIT
 	spl_board_init();
 #endif
@@ -249,8 +241,14 @@ void preloader_console_init(void)
 
 	gd->have_console = 1;
 
-	puts("\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " \
-			U_BOOT_TIME ")\n");
+#if defined(BUILD_TAG)
+    puts("\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " \
+            U_BOOT_TIME ")\nBuild: " BUILD_TAG "\n\n");
+#else
+    puts("\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " \
+            U_BOOT_TIME ")\n");
+#endif
+
 #ifdef CONFIG_SPL_DISPLAY_PRINT
 	spl_display_print();
 #endif

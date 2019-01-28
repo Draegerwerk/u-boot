@@ -32,6 +32,9 @@ int board_reset_post_test (int flags)
         m48PmData->post_board_reset.result = M48_TS_NOT_RUN;
         m48PmData->post_board_reset.state  = POST_BRESET_STATE_UP1_RESET;
         m48PmData->post_board_reset.magic  = CONFIG_SYS_BRESET_MAGIC;
+        /* hack: board_test_run_always() only adds the POST reset test time in case
+                 of power on. The timestamp_post is used as a flag to indicate the power on condition */
+        m48PmData->timestamp_post = 0;
         updateM48PmStructChecksum();
     }
 
@@ -47,6 +50,8 @@ int board_reset_post_test (int flags)
 
             ints = disable_interrupts ();
 
+            m48PmData->timestamp_kernelloaded = post_time_ms (0); /* hack: to store the time that passed during POST_BRESET_STATE_UP2_RESET*/
+            flush_dcache_all();
             if (gpio_direction_output(CONFIG_GPIO_BOARD_COLD_RESET, 0) != 0) {
                 post_log("hw reset : failed to access GPIO %u ", CONFIG_GPIO_BOARD_COLD_RESET);
                 m48PmData->post_board_reset.result = M48_TS_FAIL;
@@ -54,7 +59,11 @@ int board_reset_post_test (int flags)
                 return 4;
             } else {
                 base = post_time_ms (0);
-                while ((time = post_time_ms (0)) < base + 150) { ; }
+                while ((time = post_time_ms (0)) < base + 150)
+                {
+                    m48PmData->timestamp_kernelloaded = post_time_ms (0); /* hack: to store the time that passed during POST_BRESET_STATE_UP2_RESET*/
+                    flush_dcache_all();
+                }
                 post_log("hw reset time : %u ms, failed while waiting for own reset \n", time);
             }
 
@@ -79,6 +88,10 @@ int board_reset_post_test (int flags)
             return 2;
         case POST_BRESET_STATE_BOTH_DONE:
             m48PmData->post_board_reset.result = M48_TS_PASS;
+            /* hack: to store the time of the first two POST reset cycles
+             * timestamp_kernelloaded is reused in order to avoid changing the PmBoot structure
+             * timestamp_kernel_loaded contains now the time of up1 and up2 triggered reset stages of POST reset test */
+            m48PmData->timestamp_kernelloaded += m48PmData->remoteDelay;
             updateM48PmStructChecksum();
             post_log("remote delay : %u/%u ms ", m48PmData->remoteDelay, POST_REMOTE_WAIT_INTERVAL_2);
             break;

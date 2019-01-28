@@ -9,10 +9,12 @@
 #define __MX6M48_CONFIG_H
 
 /* SPL */
-/* #define CONFIG_SPL */
 #define CONFIG_SPL_MMC_SUPPORT
 
 #include "imx6_spl.h"                  /* common IMX6 SPL configuration */
+
+/* define this in order to make SPL wait in a while(1) for convenient JTAG-Debugger attaching */
+#undef DEBUG_SPL_WAIT_FOR_JTAG_DEBUGGER
 
 #ifdef CONFIG_SYS_SPL_MALLOC_SIZE
 #undef CONFIG_SYS_SPL_MALLOC_SIZE
@@ -97,7 +99,7 @@
 #define CONFIG_FEC_MXC_PHYADDR		0
 
 #define CONFIG_PHYLIB
-#define CONFIG_PHY_MICREL //for M48 board
+#define CONFIG_PHY_MICREL
 #define CONFIG_PHY_MICREL_KSZ9031
 
 #undef CONFIG_CMD_SF

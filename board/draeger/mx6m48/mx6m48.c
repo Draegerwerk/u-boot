@@ -36,9 +36,9 @@
 #include <post.h>
 #include <draeger_m48_pmstruct.h>
 #include <asm/cache.h>
+#include <malloc.h>
 
 #define uint32_t int
-#define CCM_CCGR0 (*(volatile uint32_t *)(0x020C4068))
 #define AIPSTZ2_MPR (*(volatile uint32_t *)(0x0217C000))
 #define AIPSTZ1_MPR (*(volatile uint32_t *)(0x0207C000))
 #define AIPSTZ1_OPACR (*(volatile uint32_t *)(0x0207C040))
@@ -99,16 +99,15 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 PmBootData* m48PmData = (PmBootData*) CONFIG_SYS_PMSTRUCT_ADDR;
-PmBspData*  m48PmBspData = NULL;
 char*       m48PmUsrData = NULL;
 
 #define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
         PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |			\
         PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
 
-#define USDHC_PAD_CTRL (PAD_CTL_PUS_47K_UP |			\
-        PAD_CTL_SPEED_LOW | PAD_CTL_DSE_80ohm |			\
-        PAD_CTL_SRE_FAST  | PAD_CTL_HYS)
+#define USDHC_PAD_CTRL (PAD_CTL_PUS_100K_UP |			\
+        PAD_CTL_SPEED_LOW | PAD_CTL_DSE_60ohm |			\
+        PAD_CTL_SRE_SLOW  | PAD_CTL_HYS)
 
 #define ENET_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
         PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm | PAD_CTL_HYS)
@@ -133,6 +132,12 @@ char*       m48PmUsrData = NULL;
 #define RST_WARM    0x10000
 
 #define COLDRST_MASK (RST_WDOG|RST_WARM)
+
+extern int ipu_set_ldb_clock(int rate);
+extern u32 get_reset_cause_num(void);
+extern int drv_video_init(void);
+extern int fdt_fixup_memory(void *blob, u64 start, u64 size);
+
 
 int dram_init(void)
 {
@@ -185,10 +190,6 @@ iomux_v3_cfg_t const usdhc4_pads[] = {
         IOMUX_PADS(PAD_SD4_DAT1__SD4_DATA1 | MUX_PAD_CTRL(USDHC_PAD_CTRL)),
         IOMUX_PADS(PAD_SD4_DAT2__SD4_DATA2 | MUX_PAD_CTRL(USDHC_PAD_CTRL)),
         IOMUX_PADS(PAD_SD4_DAT3__SD4_DATA3 | MUX_PAD_CTRL(USDHC_PAD_CTRL)),
-        IOMUX_PADS(PAD_SD4_DAT4__SD4_DATA4 | MUX_PAD_CTRL(USDHC_PAD_CTRL)),
-        IOMUX_PADS(PAD_SD4_DAT5__SD4_DATA5 | MUX_PAD_CTRL(USDHC_PAD_CTRL)),
-        IOMUX_PADS(PAD_SD4_DAT6__SD4_DATA6 | MUX_PAD_CTRL(USDHC_PAD_CTRL)),
-        IOMUX_PADS(PAD_SD4_DAT7__SD4_DATA7 | MUX_PAD_CTRL(USDHC_PAD_CTRL)),
 };
 
 iomux_v3_cfg_t const ecspi1_pads[] = {
@@ -223,21 +224,10 @@ static struct i2c_pads_info mx6dl_i2c_pad_info1 = {
      }
 };
 
-static void setup_spi(void)
-{
-    //SETUP_IOMUX_PADS(ecspi1_pads);
-    printf("WARNING: spi setup currently disabled!\n");
-}
-
-iomux_v3_cfg_t const pcie_pads[] = {
-        IOMUX_PADS(PAD_EIM_D19__GPIO3_IO19 | MUX_PAD_CTRL(NO_PAD_CTRL)),	/* POWER */
-        IOMUX_PADS(PAD_GPIO_17__GPIO7_IO12 | MUX_PAD_CTRL(NO_PAD_CTRL)),	/* RESET */
-};
-
 iomux_v3_cfg_t const lvds_pads[] = {
-        IOMUX_PADS(PAD_EIM_A22__GPIO2_IO16 | MUX_PAD_CTRL(NO_PAD_CTRL)), // DISPLAY_EN
-        IOMUX_PADS(PAD_EIM_A20__GPIO2_IO18 | MUX_PAD_CTRL(NO_PAD_CTRL)), // BACKLIGHT_EN
-        IOMUX_PADS(PAD_EIM_A18__GPIO2_IO20 | MUX_PAD_CTRL(NO_PAD_CTRL)), // DISP0_CONTRAST
+        IOMUX_PADS(PAD_EIM_A22__GPIO2_IO16 | MUX_PAD_CTRL(NO_PAD_CTRL)), /* DISPLAY_EN */
+        IOMUX_PADS(PAD_EIM_A20__GPIO2_IO18 | MUX_PAD_CTRL(NO_PAD_CTRL)), /* BACKLIGHT_EN */
+        IOMUX_PADS(PAD_EIM_A18__GPIO2_IO20 | MUX_PAD_CTRL(NO_PAD_CTRL)), /* DISP0_CONTRAST */
 };
 
 iomux_v3_cfg_t const di0_pads[] = {
@@ -245,11 +235,6 @@ iomux_v3_cfg_t const di0_pads[] = {
         IOMUX_PADS(PAD_DI0_PIN2__IPU1_DI0_PIN02),       /* DISP0_HSYNC */
         IOMUX_PADS(PAD_DI0_PIN3__IPU1_DI0_PIN03),       /* DISP0_VSYNC */
 };
-
-static void setup_pcie(void)
-{
-    SETUP_IOMUX_PADS(pcie_pads);
-}
 
 static void setup_iomux_uart(void)
 {
@@ -327,9 +312,9 @@ int board_mmc_init(bd_t *bis)
 
 int board_phy_config(struct phy_device *phydev)
 {
-    //mx6_rgmii_rework(phydev);
+    /* mx6_rgmii_rework(phydev); */
 
-    // devadd=0x02 and mode=MII_KSZ9031_MOD_DATA_NO_POST_INC are explained in KSZ9031 manual
+    /* devadd=0x02 and mode=MII_KSZ9031_MOD_DATA_NO_POST_INC are explained in KSZ9031 manual */
     ksz9031_phy_extended_write(phydev, 0x02, MII_KSZ9031_EXT_RGMII_CTRL_SIG_SKEW, MII_KSZ9031_MOD_DATA_NO_POST_INC, 0x0);
     /* min rx data delay */
     ksz9031_phy_extended_write(phydev, 0x02, MII_KSZ9031_EXT_RGMII_RX_DATA_SKEW, MII_KSZ9031_MOD_DATA_NO_POST_INC, 0x0);
@@ -752,7 +737,7 @@ struct display_info_t const displays[] = {
                 .bus	= -1,
                 .addr	= 0,
                 .pixfmt	= IPU_PIX_FMT_RGB24,
-                //        .detect	= detect_hdmi,
+                /* .detect	= detect_hdmi, */
                 .detect	= NULL,
                 .enable	= do_enable_hdmi,
                 .mode	= {
@@ -777,7 +762,6 @@ size_t display_count = 0;
 
 static void setup_display(void)
 {
-    struct mxc_ccm_reg *mxc_ccm = (struct mxc_ccm_reg *)CCM_BASE_ADDR;
     struct iomuxc *iomux = (struct iomuxc *)IOMUXC_BASE_ADDR;
     int reg;
 
@@ -813,13 +797,13 @@ int overwrite_console(void)
     return 1;
 }
 
-//int board_eth_init(bd_t *bis)
-//{
-//	setup_iomux_enet();
-//	setup_pcie();
-//
-//	return cpu_eth_init(bis);
-//}
+/* int board_eth_init(bd_t *bis) */
+/* { */
+/*	setup_iomux_enet(); */
+/*	setup_pcie(); */
+
+/*	return cpu_eth_init(bis); */
+/* } */
 
 int board_eth_init(bd_t *bis)
 {
@@ -889,10 +873,9 @@ int board_init(void)
     const char *token = "-draeger_";
     vers = strstr(U_BOOT_VERSION, token);
     vers +=1;
-    m48PmBspData = (PmBspData*) (gd->ram_size + PHYS_SDRAM - 0x00002000);
     m48PmUsrData = (char*)      (gd->ram_size + PHYS_SDRAM - 0x00A02000);
 
-    snprintf(m48PmData->uboot_version, sizeof(m48PmData->uboot_version), "%s", vers);
+    snprintf((char*) m48PmData->uboot_version, sizeof(m48PmData->uboot_version), "%s", vers);
     updateM48PmStructChecksum();
 
     /* address of boot parameters */
@@ -902,7 +885,7 @@ int board_init(void)
     setup_spi();
 #endif
 
-#define SLAVE_ADDR 0x7f // does not matter, parameter unused in mxc_i2c driver
+#define SLAVE_ADDR 0x7f /* does not matter, parameter unused in mxc_i2c driver */
     if (is_cpu_type(MXC_CPU_MX6Q)) {
         setup_i2c(1, CONFIG_SYS_I2C_SPEED, SLAVE_ADDR, &mx6q_i2c_pad_info1);
     }
@@ -910,11 +893,11 @@ int board_init(void)
         setup_i2c(1, CONFIG_SYS_I2C_SPEED, SLAVE_ADDR, &mx6dl_i2c_pad_info1);
     }
 
-    //currently not connected:
-    // check pinmux before use!
-    //setup_i2c(0, CONFIG_SYS_I2C_SPEED, SLAVE_ADDR, &i2c_pad_info2);
-    //setup_i2c(2, CONFIG_SYS_I2C_SPEED, SLAVE_ADDR, &i2c_pad_info3);
-    // 4 i2c busses currently not supported by mxc_i2c driver in this uboot?!
+    /* currently not connected: */
+    /* check pinmux before use! */
+    /* setup_i2c(0, CONFIG_SYS_I2C_SPEED, SLAVE_ADDR, &i2c_pad_info2); */
+    /* setup_i2c(2, CONFIG_SYS_I2C_SPEED, SLAVE_ADDR, &i2c_pad_info3); */
+    /* 4 i2c busses currently not supported by mxc_i2c driver in this uboot?! */
 
     post_boot_mode = post_bootmode_get(0);
     if (post_boot_mode == 0	|| (post_boot_mode & POST_POWERON)) {
@@ -930,8 +913,8 @@ int board_init(void)
     }
     updateM48PmStructChecksum();
 
-    if (gd->flags & GD_FLG_DISABLE_CONSOLE) m48PmBspData->verboseBoot = 0;
-    else                                    m48PmBspData->verboseBoot = 1;
+    if (gd->flags & GD_FLG_DISABLE_CONSOLE) m48PmData->verboseBoot = 0;
+    else                                    m48PmData->verboseBoot = 1;
 
     return 0;
 }
@@ -1010,7 +993,7 @@ int board_late_init(void)
     add_board_boot_modes(board_boot_modes);
 #endif
     /* Enable CAAM clocks */
-    CCM_CCGR0|=(1<<13)|(1<<12)|(1<<11)|(1<<10)|(1<<9)|(1<<8);
+    *((volatile uint32_t *) CCM_CCGR0) |=(1<<13)|(1<<12)|(1<<11)|(1<<10)|(1<<9)|(1<<8);
 
     pfuze_init();
     /* Write master priviledge registers to enable read and write into CAAM */
@@ -1068,8 +1051,6 @@ int	last_stage_init(void)
 {
 
 #if defined(CONFIG_VIDEO_IPUV3)
-    int i;
-    int ret;
 
     display_count = ARRAY_SIZE(displays);
     setup_display();
@@ -1126,7 +1107,7 @@ void updateM48PmStructChecksum(void)
     data = (PmBootData*) CONFIG_SYS_PMSTRUCT_ADDR;
     data->data_size=sizeof(PmBootData)-offsetof(PmBootData, data_size);
     data->checkSum = crc32 (0, (const void *) &data->data_size, data->data_size);
-    flush_cache(data, sizeof(PmBootData));
+    flush_cache((unsigned long) data, sizeof(PmBootData));
 }
 
 ulong post_word_load(void)
@@ -1260,7 +1241,7 @@ static int boardrev (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
     uint16_t ver;
 
     i2c_set_bus_num(1);
-    if (eeprom_read(CONFIG_SYS_I2C_EEPROM_ADDR, CONFIG_SYS_I2C_BOARD_REV_OFFSET, (ulong)&ver, 2))
+    if (eeprom_read(CONFIG_SYS_I2C_EEPROM_ADDR, CONFIG_SYS_I2C_BOARD_REV_OFFSET, (uchar *) &ver, 2))
     {
         printf("\nEEPROM @ 0x%02x write FAILED!!!\n",
                 CONFIG_SYS_I2C_EEPROM_ADDR + CONFIG_SYS_I2C_BOARD_REV_OFFSET);

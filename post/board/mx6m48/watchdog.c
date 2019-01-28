@@ -38,16 +38,15 @@ void checkPMSaveMemory(void)
         }
     }
     if (i == TEST_SIZE) {
-        m48PmBspData->pmGood = M48_TS_PASS;
+    	m48PmData->post_pmTest.result = M48_TS_PASS;
         post_log("\ncheckPMSaveMemory, PASSED\n");
     } else {
-        m48PmBspData->pmGood = M48_TS_FAIL;
+    	m48PmData->post_pmTest.result = M48_TS_FAIL;
         post_log("\ncheckPMSaveMemory, failed %08x+%d data %02x\n", m48PmUsrData, i, m48PmUsrData[i]);
     }
 
-    m48PmBspData->magicConstant = PM_BSP_MAGIC;
-    m48PmBspData->checkSum =
-            crc32 (0, (const char *) m48PmBspData, offsetof(PmBspData, checkSum));
+    m48PmData->post_pmTest.magic = PM_MEMORY_MAGIC;
+    updateM48PmStructChecksum();
 
 }
 

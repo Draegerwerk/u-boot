@@ -526,9 +526,14 @@ int memory_regions_post_test(int flags)
 
 int memory_post_test(int flags)
 {
-    int ret = 0;
+	int ret = 0;
     phys_addr_t phys_offset = 0;
     u32 memsize, vstart;
+#if defined(DEBUG)
+    ulong time_start;
+    ulong time_duration;
+    time_start = get_timer(0);
+#endif
 
     arch_memory_test_prepare(&vstart, &memsize, &phys_offset);
 
@@ -545,6 +550,10 @@ int memory_post_test(int flags)
     if (ret)
         arch_memory_failure_handle();
 
+#if defined(DEBUG)
+    time_duration = get_timer(time_start);
+    printf("(took %lu ms) ", time_duration);
+#endif
     return ret;
 }
 

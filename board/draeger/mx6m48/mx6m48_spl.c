@@ -79,6 +79,7 @@ static iomux_v3_cfg_t const spl_usdhc3_pads[] = {
 };
 
 typedef enum {
+    M48_UNKNOWN,
     M48_IMX6Q_REV06,
     M48_IMX6DL_REV06,
     M48_IMX6Q_REV08,
@@ -100,7 +101,7 @@ M48_BOARD_VERSION read_eeprom(int bus, struct m48_board_info *info)
 {
     int revision = 0;
     unsigned char *buf = (unsigned char *)info;
-    M48_BOARD_VERSION board_model;
+    M48_BOARD_VERSION board_model = M48_UNKNOWN;
 
     if (0 != i2c_set_bus_num(bus) ||
         0 != i2c_probe(CONFIG_SYS_I2C_EEPROM_ADDR) ||
@@ -108,11 +109,10 @@ M48_BOARD_VERSION read_eeprom(int bus, struct m48_board_info *info)
     {
         printf("\nEEPROM @ 0x%02x read FAILED!!!\n",
                 CONFIG_SYS_I2C_EEPROM_ADDR);
-    }
-    else
-    {
+    } else {
+
         info->end = 0;
-        revision = simple_strtoul(info->revision, NULL, 10);
+        revision = simple_strtoul((const char*) info->revision, NULL, 10);
 
         if (memcmp(info->partno, "8421921", sizeof(info->partno)) == 0) {
 
@@ -121,13 +121,17 @@ M48_BOARD_VERSION read_eeprom(int bus, struct m48_board_info *info)
         } else if (memcmp(info->partno, "8421901", sizeof(info->partno)) == 0) {
 
             if (is_cpu_type(MXC_CPU_MX6Q)) board_model = M48_IMX6Q_REV06;
-            else board_model = M48_IMX6DL_REV06;
+            else {
+                if (revision < 8)  board_model = M48_IMX6DL_REV06;
+                else               board_model = M48_IMX6DL_REV08;
+            }
 
         } else if (memcmp(info->partno, "8421911", sizeof(info->partno)) == 0) {
 
-            board_model = M48_IMX6DL_REV06;
+            if (revision < 2)  board_model = M48_IMX6DL_REV06;
+            else               board_model = M48_IMX6DL_REV08;
 
-        } else  {
+        } else {
 
             if (is_cpu_type(MXC_CPU_MX6Q)) board_model = M48_IMX6Q_REV08;
             else board_model = M48_IMX6DL_REV08;
@@ -164,6 +168,7 @@ static void configure_registers(m48_configuration *reg_list, int count)
     for (i=0; i<count; i++) {
         address = (u32*) reg_list[i].address;
         *address = reg_list[i].value;
+        asm("DSB");
     }
 }
 
@@ -193,6 +198,9 @@ static void spl_dram_init(M48_BOARD_VERSION board_model)
         default:
             break;
     }
+
+    /* wait for one complete refresh cycle */
+    mdelay(70);
 }
 
 void board_init_f(ulong dummy)
@@ -200,6 +208,13 @@ void board_init_f(ulong dummy)
     struct m48_board_info m48_info;
     M48_BOARD_VERSION board_model;
     char revision_0;
+
+#ifdef DEBUG_SPL_WAIT_FOR_JTAG_DEBUGGER
+    volatile ulong debugger_is_attached;
+    debugger_is_attached = 0;
+    while(debugger_is_attached == 0)
+    { /* attach with your debugger and manually set variable to 1 */ }
+#endif
     /*
      * Zero out global data:
      *  - this shoudl be done by crt0.S
@@ -229,6 +244,12 @@ void board_init_f(ulong dummy)
     m48_info.end = 0;
     board_model = read_eeprom(1, &m48_info);
 
+    if (board_model == M48_UNKNOWN) {
+        /* As already stated in read_eeprom, the read of eeprom failed! */
+        printf("Unknown board model! Will halt now.\n");
+        reset_cpu(0);
+    }
+
     /* configure MMDC for SDRAM width/size and calibration */
     spl_dram_init(board_model);
 
@@ -249,4 +270,7 @@ void board_init_f(ulong dummy)
 
 void reset_cpu(ulong addr)
 {
+    /* this will reset the cpu when watchdog is enabled, if not, it stops here */
+    while (1) {
+    }
 }
