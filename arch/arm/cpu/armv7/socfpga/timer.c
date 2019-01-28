@@ -31,6 +31,7 @@ int timer_init(void)
 	writel(TIMER_LOAD_VAL, &timer_base->load_val);
 	writel(TIMER_LOAD_VAL, &timer_base->curr_val);
 	writel(readl(&timer_base->ctrl) | 0x3, &timer_base->ctrl);
+	reset_timer();
 	return 0;
 }
 
@@ -79,14 +80,16 @@ ulong get_timer(ulong base)
 ulong get_timer_masked(void)
 {
 	/* current tick value */
-	ulong now = read_timer() / (CONFIG_TIMER_CLOCK_KHZ/CONFIG_SYS_HZ);
+	ulong now = read_timer() /
+		(CONFIG_TIMER_CLOCK_KHZ * 1000 / CONFIG_SYS_HZ);
 	if (gd->lastinc >= now) {
 		/* normal mode (non roll) */
 		/* move stamp forward with absolute diff ticks */
 		gd->tbl += gd->lastinc - now;
 	} else {
 		/* we have overflow of the count down timer */
-		gd->tbl += TIMER_LOAD_VAL - gd->lastinc + now;
+		gd->tbl += (TIMER_LOAD_VAL / (CONFIG_TIMER_CLOCK_KHZ * 1000
+			/ CONFIG_SYS_HZ)) - gd->lastinc + now;
 	}
 	gd->lastinc = now;
 	return gd->tbl;
@@ -98,7 +101,65 @@ ulong get_timer_masked(void)
 void reset_timer(void)
 {
 	/* capture current decrementer value time */
-	gd->lastinc = read_timer() / (CONFIG_TIMER_CLOCK_KHZ/CONFIG_SYS_HZ);
+	gd->lastinc = read_timer() /
+		(CONFIG_TIMER_CLOCK_KHZ * 1000 / CONFIG_SYS_HZ);
 	/* start "advancing" time stamp from 0 */
 	gd->tbl = 0;
 }
+
+
+/*
+ * Get the timer count value
+ */
+ulong get_timer_count_masked(void)
+{
+	/* current tick value */
+	ulong now = read_timer();
+	if (gd->lastinc >= now) {
+		/*
+		 * normal mode (non roll)
+		 * move stamp forward with absolute diff ticks
+		 */
+		gd->tbl += gd->lastinc - now;
+	} else {
+		/* we have overflow of the count down timer */
+		gd->tbl += TIMER_LOAD_VAL - gd->lastinc + now;
+	}
+	gd->lastinc = now;
+	return gd->tbl;
+}
+
+ulong get_timer_count(ulong base)
+{
+	return get_timer_count_masked() - base;
+}
+
+/*
+ * Reset the timer
+ */
+void reset_timer_count(void)
+{
+	/* capure current decrementer value time */
+	gd->lastinc = read_timer();
+	/* start "advancing" time stamp from 0 */
+	gd->tbl = 0;
+}
+
+/*
+ * This function is derived from PowerPC code (read timebase as long long).
+ * On ARM it just returns the timer value.
+ */
+unsigned long long get_ticks(void)
+{
+	return get_timer(0);
+}
+
+/*
+ * This function is derived from PowerPC code (timebase clock frequency).
+ * On ARM it returns the number of timer ticks per second.
+ */
+ulong get_tbclk(void)
+{
+	return CONFIG_SYS_HZ;
+}
+

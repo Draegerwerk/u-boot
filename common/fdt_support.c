@@ -449,7 +449,8 @@ void fdt_fixup_ethernet(void *fdt)
 	char enet[16], *tmp, *end;
 	char mac[16] = "ethaddr";
 	const char *path;
-	unsigned char mac_addr[6];
+	struct { unsigned char bytes[6]; } __attribute__ ((aligned (4))) aligned_mac_addr;
+	unsigned char* mac_addr = aligned_mac_addr.bytes;
 
 	node = fdt_path_offset(fdt, "/aliases");
 	if (node < 0)
@@ -471,9 +472,9 @@ void fdt_fixup_ethernet(void *fdt)
 				tmp = (*end) ? end+1 : end;
 		}
 
-		do_fixup_by_path(fdt, path, "mac-address", &mac_addr, 6, 0);
+		do_fixup_by_path(fdt, path, "mac-address", mac_addr, 6, 0);
 		do_fixup_by_path(fdt, path, "local-mac-address",
-				&mac_addr, 6, 1);
+				mac_addr, 6, 1);
 
 		sprintf(mac, "eth%daddr", ++i);
 	}

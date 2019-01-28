@@ -254,7 +254,13 @@ static int create_fdt(bootm_headers_t *images)
 	if (ret)
 		return ret;
 
+#if defined(CONFIG_BOOTM_VXWORKS)
+	/* boot_prep_vxworks won't call this */
+	puts ("create_fdt() shouldn't be called when CONFIG_BOOTM_VXWORKS defined");
+#else
 	ret = boot_relocate_fdt(lmb, of_flat_tree, &of_size);
+#endif
+
 	if (ret)
 		return ret;
 
@@ -409,3 +415,42 @@ int bootz_setup(void *image, void **start, void **end)
 	return 0;
 }
 #endif	/* CONFIG_CMD_BOOTZ */
+
+#if defined(CONFIG_BOOTM_VXWORKS)
+int arch_fixup_memory_node(void *blob)
+{
+	bd_t *bd = gd->bd;
+	int bank;
+	u64 start[CONFIG_NR_DRAM_BANKS];
+	u64 size[CONFIG_NR_DRAM_BANKS];
+
+	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
+		start[bank] = bd->bi_dram[bank].start;
+		size[bank] = bd->bi_dram[bank].size;
+	}
+
+	/* only support on BANK 0 which is ok for mx6qsabre sdb and mx6dl sabre ai */
+	return fdt_fixup_memory (blob, start[0], size[0]);
+}
+
+void boot_prep_vxworks(bootm_headers_t *images)
+{
+#if defined(CONFIG_OF_LIBFDT)
+	int off;
+
+	if (images->ft_addr) {
+		off = fdt_path_offset(images->ft_addr, "/memory");
+		if (off < 0) {
+			if (arch_fixup_memory_node(images->ft_addr))
+				puts("## WARNING: fixup memory failed!\n");
+		}
+	}
+#endif
+	cleanup_before_linux();
+}
+void boot_jump_vxworks(bootm_headers_t *images)
+{
+	/* ARM VxWorks requires device tree physical address to be passed */
+	((void (*)(void *))images->ep)(images->ft_addr);
+}
+#endif /* CONFIG_BOOTM_VXWORKS */

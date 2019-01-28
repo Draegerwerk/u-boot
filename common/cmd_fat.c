@@ -32,9 +32,19 @@
 #include <part.h>
 #include <fat.h>
 #include <fs.h>
+#include <draeger_m48_pmstruct.h>
 
 int do_fat_fsload (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+	unsigned long part = 0;
+	const char *part_str;
+
+	part_str = getenv("mmcpart");
+	if (part_str != NULL)
+		part = simple_strtoul(part_str, NULL, 16);
+
+    m48PmData->bootmode=M48_BM_FAT | part;
+    updateM48PmStructChecksum();
 	return do_load(cmdtp, flag, argc, argv, FS_TYPE_FAT, 16);
 }
 

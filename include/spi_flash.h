@@ -45,6 +45,13 @@ struct spi_flash {
 				size_t len, const void *buf);
 	int		(*erase)(struct spi_flash *flash, u32 offset,
 				size_t len);
+	int		(*poll_read_status)(struct spi_flash *flash);
+
+	int		(*reset)(struct spi_flash *flash);
+
+#ifdef CONFIG_SPL_SPI_XIP
+	int		(*xip_enter)(struct spi_flash *flash);
+#endif
 };
 
 struct spi_flash *spi_flash_probe(unsigned int bus, unsigned int cs,
@@ -68,6 +75,23 @@ static inline int spi_flash_erase(struct spi_flash *flash, u32 offset,
 {
 	return flash->erase(flash, offset, len);
 }
+
+
+static inline int spi_flash_reset(struct spi_flash *flash)
+{
+	if (flash->reset) return flash->reset(flash);
+	return 0;
+}
+
+
+#ifdef CONFIG_SPL_SPI_XIP
+static inline int spi_flash_xip_enter(struct spi_flash *flash)
+{
+	if (flash->xip_enter)
+		return flash->xip_enter(flash);
+	return -1;
+}
+#endif
 
 void spi_boot(void) __noreturn;
 

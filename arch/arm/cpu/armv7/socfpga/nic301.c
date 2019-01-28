@@ -15,13 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SOCFPGA_BASE_ADDRS_H_
-#define _SOCFPGA_BASE_ADDRS_H_
+#include <common.h>
+#include <asm/io.h>
+#include <asm/arch/nic301.h>
 
-#define SOCFPGA_L3REGS_ADDRESS 0xff800000
-#define SOCFPGA_UART0_ADDRESS 0xffc02000
-#define SOCFPGA_UART1_ADDRESS 0xffc03000
-#define SOCFPGA_OSC1TIMER0_ADDRESS 0xffd00000
-#define SOCFPGA_RSTMGR_ADDRESS 0xffd05000
-
-#endif /* _SOCFPGA_BASE_ADDRS_H_ */
+/*
+ * Convert all slave from secure to non secure
+ */
+void nic301_slave_ns(void)
+{
+	writel(0x1, (SOCFPGA_L3REGS_ADDRESS +
+		L3REGS_SECGRP_LWHPS2FPGAREGS_ADDRESS));
+	writel(0x1, (SOCFPGA_L3REGS_ADDRESS +
+		L3REGS_SECGRP_HPS2FPGAREGS_ADDRESS));
+	writel(0x1, (SOCFPGA_L3REGS_ADDRESS +
+		L3REGS_SECGRP_ACP_ADDRESS));
+	writel(0x1, (SOCFPGA_L3REGS_ADDRESS +
+		L3REGS_SECGRP_ROM_ADDRESS));
+	writel(0x1, (SOCFPGA_L3REGS_ADDRESS +
+		L3REGS_SECGRP_OCRAM_ADDRESS));
+	writel(0x1, (SOCFPGA_L3REGS_ADDRESS +
+		L3REGS_SECGRP_SDRDATA_ADDRESS));
+	return;
+}

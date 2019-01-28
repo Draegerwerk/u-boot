@@ -35,6 +35,7 @@
 
 #include "compiler.h"
 #include <asm/byteorder.h>
+#include <linux/types.h>
 
 #ifdef USE_HOSTCC
 
@@ -351,8 +352,14 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
 int boot_get_fdt(int flag, int argc, char * const argv[],
 		bootm_headers_t *images, char **of_flat_tree, ulong *of_size);
 void boot_fdt_add_mem_rsv_regions(struct lmb *lmb, void *fdt_blob);
+
+#if defined(CONFIG_BOOTM_VXWORKS)
+int boot_relocate_fdt (struct lmb *lmb, ulong bootmap_base,
+		char **of_flat_tree, ulong *of_size);
+#else
 int boot_relocate_fdt(struct lmb *lmb, char **of_flat_tree, ulong *of_size);
-#endif
+#endif	 /* CONFIG_BOOTM_VXWORKS */
+#endif /* CONFIG_OF_LIBFDT */
 
 #ifdef CONFIG_SYS_BOOT_RAMDISK_HIGH
 int boot_ramdisk_high(struct lmb *lmb, ulong rd_data, ulong rd_len,

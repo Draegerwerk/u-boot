@@ -36,6 +36,27 @@
 /* M25Pxx-specific commands */
 #define CMD_M25PXX_RES		0xab	/* Release from DP, and Read Signature */
 
+/* Read flag status register */
+#define CMD_READ_FLAG_STATUS		0x70
+#define FLAG_STATUS_READY		0x80
+
+/* Read volatile configuration register */
+#define CMD_N25QXX_RVCR		0x85
+
+/* Write volatile configuration register */
+#define CMD_N25QXX_WVCR		0x81
+
+/* Enter 4-byte address mode */
+#define CMD_N25QXX_EN4B		0xB7
+
+/* Exit 4-byte address mode */
+#define CMD_N25QXX_EX4B		0xE9
+
+#define VCR_XIP_SHIFT			(0x03)
+#define VCR_XIP_MASK			(0x08)
+#define VCR_DUMMY_CLK_CYCLES_SHIFT	(0x04)
+#define VCR_DUMMY_CLK_CYCLES_MASK	(0xF0)
+
 struct stmicro_spi_flash_params {
 	u16 id;
 	u16 pages_per_sector;
@@ -92,6 +113,32 @@ static const struct stmicro_spi_flash_params stmicro_spi_flash_table[] = {
 		.nr_sectors = 64,
 		.name = "M25P128",
 	},
+
+	/* Numonyx */
+	{
+		.id = 0xba16,
+		.pages_per_sector = 256,
+		.nr_sectors = 64,
+		.name = "N25Q32",
+	},
+	{
+		.id = 0xbb16,
+		.pages_per_sector = 256,
+		.nr_sectors = 64,
+		.name = "N25Q32A",
+	},
+	{
+		.id = 0xba17,
+		.pages_per_sector = 256,
+		.nr_sectors = 128,
+		.name = "N25Q64",
+	},
+	{
+		.id = 0xba17,
+		.pages_per_sector = 256,
+		.nr_sectors = 128,
+		.name = "N25Q64A",
+	},
 	{
 		.id = 0xba18,
 		.pages_per_sector = 256,
@@ -110,7 +157,141 @@ static const struct stmicro_spi_flash_params stmicro_spi_flash_table[] = {
 		.nr_sectors = 512,
 		.name = "N25Q256",
 	},
+	{
+		.id = 0xbb19,
+		.pages_per_sector = 256,
+		.nr_sectors = 512,
+		.name = "N25Q256A",
+	},
+	{
+		.id = 0xba20,
+		.pages_per_sector = 256,
+		.nr_sectors = 1024,
+		.name = "N25Q512",
+	},
+	{
+		.id = 0xbb20,
+		.pages_per_sector = 256,
+		.nr_sectors = 1024,
+		.name = "N25Q512A",
+	},
+	{
+		.id = 0xba21,
+		.pages_per_sector = 256,
+		.nr_sectors = 2048,
+		.name = "N25Q00",
+	},
+	{
+		.id = 0xbb21,
+		.pages_per_sector = 256,
+		.nr_sectors = 2048,
+		.name = "N25Q00A",
+	},
 };
+
+static int stmicro_set_vcr(struct spi_flash *flash, u8 clk_cycles, u8 xip)
+{
+	u8 cmd;
+	u8 resp;
+	int ret;
+
+	ret = spi_flash_cmd_write_enable(flash);
+	if (ret < 0) {
+		debug("SF: enabling write failed\n");
+		return ret;
+	}
+
+	ret = spi_flash_cmd(flash->spi, CMD_N25QXX_RVCR, (void *) &resp,
+		sizeof(resp));
+	if (ret < 0) {
+		debug("SF: read volatile config register failed.\n");
+		return ret;
+	}
+
+	resp &= ~VCR_DUMMY_CLK_CYCLES_MASK;
+	resp |=  (clk_cycles << VCR_DUMMY_CLK_CYCLES_SHIFT) &
+			VCR_DUMMY_CLK_CYCLES_MASK;
+
+	/* To enable XIP, set VCR.XIP = 0 */
+	if (xip)
+		resp &= ~VCR_XIP_MASK;
+	else
+		resp |= VCR_XIP_MASK;
+
+	cmd = CMD_N25QXX_WVCR;
+	ret = spi_flash_cmd_write(flash->spi, &cmd, sizeof(cmd), &resp,
+		sizeof(resp));
+	if (ret) {
+		debug("SF: fail to write vcr register\n");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int stmicro_set_4byte(struct spi_flash *flash, u8 enable)
+{
+	u8 cmd;
+	int ret;
+
+	ret = spi_flash_cmd_write_enable(flash);
+	if (ret < 0) {
+		debug("SF: enabling write failed\n");
+		return ret;
+	}
+
+	cmd = enable ? CMD_N25QXX_EN4B : CMD_N25QXX_EX4B;
+
+	ret = spi_flash_cmd_write(flash->spi, &cmd, sizeof(cmd), NULL, 0);
+	if (ret) {
+		debug("SF: fail to %s 4-byte address mode\n",
+			enable ? "enter" : "exit");
+		return ret;
+	}
+
+	return 0;
+}
+
+int stmicro_wait_flag_status_ready(struct spi_flash *flash)
+{
+	return spi_flash_cmd_poll_bit(flash, SPI_FLASH_PAGE_ERASE_TIMEOUT,
+		CMD_READ_FLAG_STATUS, FLAG_STATUS_READY, 1);
+}
+
+
+#ifdef CONFIG_SPL_SPI_XIP
+int stmicro_xip_enter(struct spi_flash *flash)
+{
+	char dummy[4];
+	int ret;
+
+	/* enable XiP in volatile configuration register */
+	ret = stmicro_set_vcr(flash, 8, 1);
+	if (ret) {
+		debug("SF: enable XiP in volatile configuration register"
+			"failed\n");
+		return ret;
+	}
+	/* send fast read to start with xip confirmation bit 0 */
+	ret = spi_flash_cmd_read_fast(flash, 0, 4, dummy);
+	if (ret) {
+		debug("SF: Send fast read with xip confirmation failed\n");
+		return ret;
+	}
+	/* dummy cycle = 0 to keep XiP state */
+	spi_enter_xip(flash->spi, 0);
+	return 0;
+}
+#endif
+
+static inline int spi_flash_cmd_reset_stmicro(struct spi_flash *flash)
+{
+	int result;
+	if ((result = spi_flash_cmd(flash->spi, 0x66, NULL, 0)) == 0 ) {
+		result = spi_flash_cmd(flash->spi, 0x99, NULL, 0);
+	}
+	return result;
+}
 
 struct spi_flash *spi_flash_probe_stmicro(struct spi_slave *spi, u8 * idcode)
 {
@@ -146,7 +327,7 @@ struct spi_flash *spi_flash_probe_stmicro(struct spi_slave *spi, u8 * idcode)
 		return NULL;
 	}
 
-	flash = malloc(sizeof(*flash));
+	flash = calloc(sizeof(*flash), 1);
 	if (!flash) {
 		debug("SF: Failed to allocate memory\n");
 		return NULL;
@@ -158,9 +339,29 @@ struct spi_flash *spi_flash_probe_stmicro(struct spi_slave *spi, u8 * idcode)
 	flash->write = spi_flash_cmd_write_multi;
 	flash->erase = spi_flash_cmd_erase;
 	flash->read = spi_flash_cmd_read_fast;
+	flash->reset = spi_flash_cmd_reset_stmicro;
 	flash->page_size = 256;
 	flash->sector_size = 256 * params->pages_per_sector;
 	flash->size = flash->sector_size * params->nr_sectors;
+#ifdef CONFIG_SPL_SPI_XIP
+	flash->xip_enter = stmicro_xip_enter;
+#endif
+
+	/* Micron flash above 512Mbit (512Mbit and 1Gbit) needs to poll
+	flag status register after erase and write. */
+	if (flash->size >= 0x4000000)	/* 512Mbit equal 64MByte */
+		flash->poll_read_status = stmicro_wait_flag_status_ready;
+
+	/*
+	 * Numonyx flash have default 15 dummy clocks. Set dummy clocks to 8
+	 * and XIP off.
+	 */
+	if (((id & 0xFF00) == 0xBA00) || ((id & 0xFF00) == 0xBB00))
+		stmicro_set_vcr(flash, 8, 0);
+
+	/* Enter 4-byte address mode if the device is exceed 16MiB. */
+	if (flash->size > 0x1000000)
+		stmicro_set_4byte(flash, 1);
 
 	return flash;
 }

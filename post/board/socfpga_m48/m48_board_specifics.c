@@ -1,0 +1,70 @@
+/*
+ * (C) Copyright 2015 Draegerwerk AG
+ */
+
+#include <common.h>
+#include <post.h>
+#include <draeger_m48_pmstruct.h>
+#include <version.h>
+
+#ifdef CONFIG_POST
+
+#ifdef CONFIG_SYS_POST_BSPEC3
+
+int board_test_run_always (int flags) {
+	ulong currentTime;
+	currentTime = get_timer (0);
+    if(   (m48PmData->post_board_reset.result == M48_TS_PASS)
+       && (m48PmData->timestamp_post          == 0          )) /* hack: timestamp_post is a flag that idicates cold start if set to 0 */
+	{
+		/* hack: m48PmData->timestamp_kernelloaded contains the time it took
+		 * to perform the two reset cycles of POST reset test
+		 *
+		 * 0----->t_reset_by_up1
+		 * ^             0--------->t_reset_by_self (up2)
+		 * |             			   0--------------------->t_post_done-------------->t_kernelloaded
+		 * |             			   ^							^
+		 * |						   |                            |
+		 * |-- timestamp_kernelloaded -|-------- currentTime -------|
+		*/
+		m48PmData->timestamp_post = currentTime + m48PmData->timestamp_kernelloaded;
+	}
+    else
+    {
+		/* POST reset test has not been performed therefore the entire POST test time is from last reset to now */
+    	m48PmData->timestamp_post = currentTime;
+    }
+
+    /* hack: for now we store the time it took to reach this point (POST done) since the last reset occurred
+			 this information will be used in board_test_run_always() */
+    m48PmData->timestamp_kernelloaded = currentTime;
+    m48PmData->bootmode = 0;
+    updateM48PmStructChecksum();
+    return 0;
+}
+
+#endif
+
+static int do_scTestResult(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+    uint32_t result;
+
+    if (argc != 2)
+        return cmd_usage(cmdtp);
+
+    result = simple_strtoul(argv[1], NULL, 16);
+
+    m48PmData->post_scriptTest.magic = PM_MEMORY_MAGIC;
+    m48PmData->post_scriptTest.result = result;
+    updateM48PmStructChecksum();
+
+    return 0;
+}
+
+U_BOOT_CMD(
+        scrtest, 2, 0, do_scTestResult,
+       "store the result of the script test into m48PmBspData",
+       "scrtest <result>"
+       );
+
+#endif

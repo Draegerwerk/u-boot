@@ -1,0 +1,9 @@
+# "/" is relative to location of .gitignore file
+/build.h
+/iocsr_config_cyclone5.c
+/iocsr_config_cyclone5.h
+/pinmux_config.h
+/pinmux_config_cyclone5.c
+/pll_config.h
+/reset_config.h
+/sdram/sdram_config.h

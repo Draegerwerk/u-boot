@@ -37,6 +37,7 @@ ELF-mpc8xx                       += test_burst timer
 ELF-mpc8260                      += mem_to_mem_idma2intr
 ELF-ppc                          += sched
 ELF-oxc                          += eepro100_eeprom
+ELF-$(CONFIG_SOCFPGA_CYCLONE5)   += socfpga_m48
 
 #
 # Some versions of make do not handle trailing white spaces properly;

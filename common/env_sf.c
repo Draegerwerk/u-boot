@@ -307,6 +307,9 @@ int saveenv(void)
 	puts("done\n");
 
  done:
+
+	spi_flash_reset(env_flash);
+
 	if (saved_buffer)
 		free(saved_buffer);
 
@@ -336,6 +339,7 @@ void env_relocate_spec(void)
 	if (ret)
 		gd->env_valid = 1;
 out:
+	spi_flash_reset(env_flash);
 	spi_flash_free(env_flash);
 	env_flash = NULL;
 }
