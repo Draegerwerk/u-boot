@@ -1,5 +1,10 @@
 /*
- * (C) Copyright 2015 Draegerwerk AG
+ * m48_board_specifics.c
+ *
+ * SPDX-License-Identifier:        GPL-2.0+
+ *
+ * (C) Copyright 2015 Draeger and Licensors, info@draeger.com
+ *
  */
 
 #include <common.h>

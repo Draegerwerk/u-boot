@@ -1,7 +1,9 @@
 /*
- * Copyright Draegerwerk AG & Co. KGaA
- *
  * draeger_m48_pmstruct.h
+ *
+ * SPDX-License-Identifier:        GPL-2.0+
+ *
+ * (C) Copyright 2015 Draeger and Licensors, info@draeger.com
  *
  * Definition of the persistent memory region that is made accessible to the OS
  */

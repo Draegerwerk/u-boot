@@ -1,8 +1,10 @@
 /*
  * mx6m48dl_spl_cfg.c
  *
- *  Created on: 18.01.2018
- *      Author: baehrino
+ * SPDX-License-Identifier:        GPL-2.0+
+ *
+ * (C) Copyright 2015 Draeger and Licensors, info@draeger.com
+ *
  */
 
 #define CONFIG_MX6DL

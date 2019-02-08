@@ -1,5 +1,7 @@
 #
-# Copyright (C) 2016 Draegerwerk AG
+# (C) Copyright 2015 Draeger and Licensors, info@draeger.com
+#
+# SPDX-License-Identifier:        GPL-2.0+
 #
 
 obj-y  := mx6m48.o

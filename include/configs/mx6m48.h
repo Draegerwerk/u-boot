@@ -1,5 +1,9 @@
 /*
- * (C) Copyright 2015 Draegerwerk AG
+ * mx6m48.h
+ *
+ * SPDX-License-Identifier:        GPL-2.0+
+ *
+ * (C) Copyright 2015 Draeger and Licensors, info@draeger.com
  *
  * Configuration for Draeger M48 processor 1
  *
