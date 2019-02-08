@@ -1,6 +1,8 @@
 /* gpio.c
  *
- * (C) Copyright 2015 Draegerwerk AG
+ * SPDX-License-Identifier:        GPL-2.0+
+ *
+ * (C) Copyright 2015 Draeger and Licensors, info@draeger.com
  *
  */
 
