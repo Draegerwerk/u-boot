@@ -1,5 +1,7 @@
 #
-# (C) Copyright 2015 Draegerwerk AG
+# (C) Copyright 2015 Draeger and Licensors, info@draeger.com
+#
+# SPDX-License-Identifier:        GPL-2.0+
 #
 
 include $(OBJTREE)/include/autoconf.mk

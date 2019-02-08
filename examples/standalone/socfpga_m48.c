@@ -1,14 +1,15 @@
-/*
- * (C) Copyright 2016
- * Drägerwerk AG & Co. KGaA
- */
-
-
-/* This file is intended to be loaded as u-boot standalone program
+/* socfpga_m48.c
+ *
+ * SPDX-License-Identifier:        GPL-2.0+
+ *
+ * (C) Copyright 2015 Draeger and Licensors, info@draeger.com
+ *
+ * This file is intended to be loaded as u-boot standalone program
  * into the OCRAM of the SOC
  * When run, it brings the uP2 into a low power state from where it never
  * is able to return.
  */
+
 #include <common.h>
 #include <exports.h>
 #include <asm/arch/sdram.h>
