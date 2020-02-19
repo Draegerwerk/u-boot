@@ -23,12 +23,15 @@ static char default_environment[] = {
 const uchar default_environment[] = {
 #endif
 #ifdef	CONFIG_ENV_CALLBACK_LIST_DEFAULT
+#error "Will break interface m48UBootEnvironmentUpdateUsrSpc.c: M48_UBOOT_DEFAULT_ENV_FIRST_ENTRY"
 	ENV_CALLBACK_VAR "=" CONFIG_ENV_CALLBACK_LIST_DEFAULT "\0"
 #endif
 #ifdef	CONFIG_ENV_FLAGS_LIST_DEFAULT
+#error "Will break interface m48UBootEnvironmentUpdateUsrSpc.c: M48_UBOOT_DEFAULT_ENV_FIRST_ENTRY"
 	ENV_FLAGS_VAR "=" CONFIG_ENV_FLAGS_LIST_DEFAULT "\0"
 #endif
 #ifdef	CONFIG_BOOTARGS
+#error "Will break interface m48UBootEnvironmentUpdateUsrSpc.c: M48_UBOOT_DEFAULT_ENV_FIRST_ENTRY"
 	"bootargs="	CONFIG_BOOTARGS			"\0"
 #endif
 #ifdef	CONFIG_BOOTCOMMAND
@@ -121,6 +124,7 @@ const uchar default_environment[] = {
 #ifdef	CONFIG_EXTRA_ENV_SETTINGS
 	CONFIG_EXTRA_ENV_SETTINGS
 #endif
+	"isdefaultenvironment=y\0"
 	"\0"
 #ifdef DEFAULT_ENV_INSTANCE_EMBEDDED
 	}

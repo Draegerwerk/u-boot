@@ -97,6 +97,8 @@ typedef void *hab_rvt_authenticate_image_t(uint8_t, ptrdiff_t,
 		void **, size_t *, hab_loader_callback_f_t);
 typedef void hapi_clock_init_t(void);
 
+hab_rvt_report_status_t* getHabRvtReportStatusFunctionPointer(void);
+
 #define HAB_ENG_ANY		0x00   /* Select first compatible engine */
 #define HAB_ENG_SCC		0x03   /* Security controller */
 #define HAB_ENG_RTIC	0x05   /* Run-time integrity checker */

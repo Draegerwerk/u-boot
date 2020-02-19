@@ -9,6 +9,7 @@
 #include <asm/arch/imx-regs.h>
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
+#include <asm/arch/hab.h>
 #include <asm/errno.h>
 #include <asm/gpio.h>
 #include <asm/imx-common/mxc_i2c.h>
@@ -37,6 +38,11 @@
 #include <draeger_m48_pmstruct.h>
 #include <asm/cache.h>
 #include <malloc.h>
+#include <image.h>
+#include <fs.h>
+#include <linux/string.h>
+#include <linux/ctype.h>
+#include <vsprintf.h>
 
 #define uint32_t int
 #define AIPSTZ2_MPR (*(volatile uint32_t *)(0x0217C000))
@@ -99,7 +105,6 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 PmBootData* m48PmData = (PmBootData*) CONFIG_SYS_PMSTRUCT_ADDR;
-char*       m48PmUsrData = NULL;
 
 #define UART_PAD_CTRL  (PAD_CTL_PUS_100K_UP |			\
         PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm |			\
@@ -856,11 +861,67 @@ int board_eth_init(bd_t *bis)
     return 0;
 }
 
+static unsigned int srk1IsRevoked(void)
+{
+    const uint32_t SRK_1_MASK = 1;
+    const uint32_t SRK_1_HAS_BEEN_REVOKED_VAL = 1;
+    volatile void __iomem *srkRevokeShadowRegisterAddr;
+    u32 srkRevokeShadowRegisterValue;
+    srkRevokeShadowRegisterAddr = (volatile void __iomem *)(OCOTP_BASE_ADDR + 0x6F0);
+    srkRevokeShadowRegisterValue = readl(srkRevokeShadowRegisterAddr) & SRK_1_MASK;
+    return srkRevokeShadowRegisterValue == SRK_1_HAS_BEEN_REVOKED_VAL ? 1 : 0;
+}
+
+static unsigned int boardSecurityStateRequiresSilentBoot(void)
+{
+    enum hab_config config  = 0;
+    enum hab_state state    = 0;
+    unsigned int  isRequired      = 0;
+    hab_rvt_report_status_t *hab_rvt_report_status;
+    hab_rvt_report_status = getHabRvtReportStatusFunctionPointer();
+    if(is_hab_enabled())
+    {
+        isRequired = 1;
+        (void)hab_rvt_report_status(&config, &state);
+        if(   (config == HAB_CFG_RETURN)
+            ||(config == HAB_CFG_OPEN  ))
+        {
+            isRequired = 0;
+        }
+        else if (config == HAB_CFG_CLOSED)
+        {
+            if(!srk1IsRevoked())
+            {
+                isRequired = 0;
+            }
+        }
+    }
+    return isRequired;
+}
+
+static unsigned int silentBootIsRequired(void)
+{
+    unsigned int isRequired;
+    isRequired = 0;
+    if(boardSecurityStateRequiresSilentBoot())
+    {   /* required due to HAB settings */
+        isRequired = 1;
+    }
+    else if(gpio_get_value(CONFIG_GPIO_DEBUG))
+    {   /* required due to debug jumper setting */
+        isRequired = 1;
+    }
+    return isRequired;
+}
+
 int board_early_init_f(void)
 {
-
-    if (gpio_get_value(CONFIG_GPIO_DEBUG)) gd->flags |= (GD_FLG_SILENT | GD_FLG_DISABLE_CONSOLE);
-
+#ifndef CONFIG_HAB_REVOCATION_TEST_IMAGE
+    if(silentBootIsRequired())
+    {
+        gd->flags |= (GD_FLG_SILENT | GD_FLG_DISABLE_CONSOLE);
+    }
+#endif
     setup_iomux_uart();
     return 0;
 }
@@ -873,7 +934,7 @@ int board_init(void)
     const char *token = "-draeger_";
     vers = strstr(U_BOOT_VERSION, token);
     vers +=1;
-    m48PmUsrData = (char*)      (gd->ram_size + PHYS_SDRAM - 0x00A02000);
+
 
     snprintf((char*) m48PmData->uboot_version, sizeof(m48PmData->uboot_version), "%s", vers);
     updateM48PmStructChecksum();
@@ -1047,6 +1108,268 @@ int board_late_init(void)
     return 0;
 }
 
+/* This function replaces the first occurrence of a whitespace character in str with a
+ * zero termination character */
+static void terminateStringAtFirstWhitespace(char *const str)
+{
+    unsigned int i;
+    size_t len = strlen(str);
+    for(i = 0; i < len; ++i)
+    {
+        if(isspace(str[i]))
+        {
+            str[i] = '\0';
+            break;
+        }
+    }
+}
+
+/* Null on error, if found returned memory needs to be freed by caller */
+static char * findValueOfKeyInEnvironment(const char *keyString, const char *searchBuffer, const size_t sizeInByte)
+{
+    char * ret = NULL;
+    char * found = NULL;
+    char * startOfValue = NULL;
+    char * buffer = NULL;
+    size_t lengthOfValue = 0;
+    found = strstr(searchBuffer, keyString);
+    if(found)
+    {
+        startOfValue = found + strlen(keyString);
+        while(isblank(*startOfValue))
+        {
+            startOfValue++;
+        }
+        found = strchr(startOfValue,(int)';');
+        if(found)
+        {
+            lengthOfValue = found - startOfValue;
+            buffer = malloc(lengthOfValue+1);
+            if(buffer)
+            {
+                strncpy(buffer, startOfValue, lengthOfValue+1);
+                /* terminate string at the end */
+                buffer[lengthOfValue] = 0;
+                /* remove whitespace chars that might be to the left of the string termination
+                 * e.g. \r\n*/
+                terminateStringAtFirstWhitespace(buffer);
+                ret = buffer;
+            }
+        }
+
+    }
+    return ret;
+}
+
+static int isValidIpV4Address(const char *const ip)
+{
+    const unsigned long maxNum = 255; /* max number within section */
+    const unsigned int numberOfSections = 4;   /* sections per ip addr */
+    const char *delimiter = "."; /* delimiter of sections */
+    unsigned long num;
+    unsigned int flag = 1;
+    unsigned int counter=0;
+    if(!ip)
+    {
+        return 0;
+    }
+    char *workingCopy = strdup(ip);
+    if(!workingCopy)
+    {
+        return 0;
+    }
+    char* p = strtok(workingCopy, delimiter);
+
+    while (p && flag )
+    {
+        if(strict_strtoul(p, 10, &num) != 0)
+        {
+            flag = 0;
+            break;
+        }
+        if (num>=0 && num<=maxNum && (counter++<numberOfSections))
+        {
+                flag=1;
+                p=strtok(NULL, delimiter);
+        }
+        else
+        {
+                flag=0;
+                break;
+        }
+    }
+    free(workingCopy);
+    return flag && (counter==numberOfSections);
+}
+
+static int isValidSubnetmask(const char *const mask)
+{
+    unsigned long num;
+    const unsigned int numBase = 16;
+    const unsigned long maxNum = 0xFFFFFFFF;
+    int success = 0;
+    if(!mask)
+    {
+        return 0;
+    }
+    /* first check if the subnet mask is in the form of e.g. FFFFFF00 */
+    if(strict_strtoul(mask, numBase, &num) == 0)
+    {
+        success = 1;
+    }
+    if(success)
+    {
+        return num <= maxNum;
+    }
+    else
+    {   /* it might be in the form of e.g. 255.255.255.0
+         * which looks like an IP address */
+        return isValidIpV4Address(mask);
+    }
+
+}
+
+typedef struct
+{   const char *keyString;
+    char *valueString;
+    int(*checkerFunction)(const char *const); /* returns !0 when valid */
+    int isValid;
+} m48EnvParseEntry;
+
+static m48EnvParseEntry m48EnvIpAddrValue    = {"ipaddr",   NULL, &isValidIpV4Address, 0};
+static m48EnvParseEntry m48EnvServerIpValue  = {"serverip", NULL, &isValidIpV4Address, 0};
+static m48EnvParseEntry m48EnvGatewayIpValue = {"gwip",     NULL, &isValidIpV4Address, 0};
+static m48EnvParseEntry m48EnvNetMaskValue   = {"netmask",  NULL, &isValidSubnetmask,  0};
+
+static m48EnvParseEntry *const m48EnvParseArray[] = {&m48EnvIpAddrValue,
+                                                     &m48EnvServerIpValue,
+                                                     &m48EnvGatewayIpValue,
+                                                     &m48EnvNetMaskValue};
+static void parseBootEnvScript(void)
+{
+    ulong addr;
+    ulong *data;
+    const image_header_t *hdr;
+    const char *interfaceName = "mmc";
+    const char *devicePartitionString = "0:1";
+    const char *scriptName = "bootenv.scr";
+    const char *scriptLoadAddressName = "fdtaddr";
+    const ulong scriptLoadAddressNotFound = 0;
+    const int scriptOffsetOnBlkDevice = 0;
+    const int scriptMaxSizeInBytes = 2048;
+    const char *textStart = NULL;
+    size_t textSize = 0;
+    unsigned int entryItr = 0;
+    unsigned int injectionAllowed = 1;
+
+    if(!fs_set_blk_dev(interfaceName, devicePartitionString, FS_TYPE_FAT))
+    {
+        if(fs_exists(scriptName))
+        {
+            printf("\n%s detected. Start parsing\n", scriptName);
+            /* fs_exists calls fs_close() therefore a new fs_set_blk_dev() is necessary */
+            fs_set_blk_dev(interfaceName, devicePartitionString, FS_TYPE_FAT);
+            addr = getenv_hex(scriptLoadAddressName, scriptLoadAddressNotFound);
+            if(addr == scriptLoadAddressNotFound)
+            {
+                printf("Could not get environment variable %s. Abort parsing\n", scriptLoadAddressName);
+                return;
+            }
+
+            /* clear RAM content
+             * The scriptMaxSizeInBytes+1 ensures that the RAM area is null terminated even if the
+             * file doesn't contain any 0's and/or is scriptMaxSizeInBytes large.
+             * This is a safety precaution due to the use of strchr function which relies on zero terminated strings
+             */
+            memset((void *)addr, 0, scriptMaxSizeInBytes+1);
+            /* fs_read implementation returns -1 if the requested number of
+             * bytes is not actual read number of bytes (even when EOF is reached)
+             */
+            (void)fs_read(scriptName , addr, scriptOffsetOnBlkDevice, scriptMaxSizeInBytes);
+
+            hdr = (const image_header_t *)addr;
+            if(image_check_magic(hdr))
+            {
+                if(   image_check_hcrc(hdr)
+                   && image_check_dcrc(hdr)
+                   && image_check_type(hdr, IH_TYPE_SCRIPT))
+                {
+                    data = (ulong *)image_get_data(hdr);
+                    /*
+                     * scripts are just multi-image files with one component, seek
+                     * past the zero-terminated sequence of image lengths to get
+                     * to the actual image data
+                     */
+                    while (*data++);
+                    textStart = (const char *)data;
+                    textSize = strlen(textStart)+1;
+                    /* perform the parsing */
+                    for(entryItr=0; entryItr < ARRAY_SIZE(m48EnvParseArray); ++entryItr)
+                    {
+                        m48EnvParseArray[entryItr]->valueString = findValueOfKeyInEnvironment(m48EnvParseArray[entryItr]->keyString, textStart, textSize);
+                        m48EnvParseArray[entryItr]->isValid = m48EnvParseArray[entryItr]->checkerFunction(m48EnvParseArray[entryItr]->valueString);
+                        /* only in case all values are found and valid the injection is granted*/
+                        if(m48EnvParseArray[entryItr]->isValid == 0)
+                        {
+                            printf("Parsing of key: \"%s\" failed\n", m48EnvParseArray[entryItr]->keyString);
+                            printf("Parsed value: \"%s\"\n", m48EnvParseArray[entryItr]->valueString ? m48EnvParseArray[entryItr]->valueString : "NULL");
+                            printf("Skip parsing\n");
+                            injectionAllowed =0;
+                            break;
+                        }
+                    }
+                    /* inject into environment in RAM */
+                    for(entryItr=0; injectionAllowed && (entryItr < ARRAY_SIZE(m48EnvParseArray)); ++entryItr)
+                    {
+                        if(setenv(m48EnvParseArray[entryItr]->keyString, m48EnvParseArray[entryItr]->valueString) != 0)
+                        {
+                            injectionAllowed = 0;
+                            printf("Injection into RAM failed\n");
+                            printf("key  : %s\n", m48EnvParseArray[entryItr]->keyString);
+                            printf("value: %s\n", m48EnvParseArray[entryItr]->valueString);
+                            printf("Skip parsing\n");
+                            break;
+                        }
+                        printf("Injected into RAM\n");
+                        printf("key  : %s\n", m48EnvParseArray[entryItr]->keyString);
+                        printf("value: %s\n", m48EnvParseArray[entryItr]->valueString);
+                    }
+                    /* store environment in RAM on persistent memory */
+                    if(injectionAllowed)
+                    {
+                        printf("Parsing successful. Store environment on persistent memory\n");
+                        saveenv();
+                    }
+                    /* cleanup */
+                    for(entryItr=0; entryItr < ARRAY_SIZE(m48EnvParseArray); ++entryItr)
+                    {
+                        if(m48EnvParseArray[entryItr]->valueString)
+                        {
+                            free(m48EnvParseArray[entryItr]->valueString);
+                        }
+                    }
+                }
+                else
+                {
+                    printf("Image integrity check failed\n");
+                    printf("Header CRC check: %s\n" , image_check_hcrc(hdr) ? "OK" : "failed");
+                    printf("Payload CRC check: %s\n", image_check_dcrc(hdr) ? "OK" : "failed");
+                    printf("Image type: %s\n"       , image_check_type(hdr, IH_TYPE_SCRIPT) ? "OK" : "wrong type");
+                    printf("Skip parsing\n");
+                }
+            }
+            else
+            {
+                printf("Bad image magic detected. Skip parsing\n");
+            }
+        }
+        else
+        {
+            printf("\n%s not detected. Skip parsing\n", scriptName);
+        }
+    }
+}
+
 int	last_stage_init(void)
 {
 
@@ -1062,6 +1385,13 @@ int	last_stage_init(void)
         setenv("fdt_name", CONFIG_DEFAULT_FDT_FILE_MX6Q);
     } else {
         setenv("fdt_name", CONFIG_DEFAULT_FDT_FILE_MX6DL);
+    }
+
+    if(gd->flags & GD_FLG_DEFAULT_ENV)
+    {
+        /* will load the bootenv script to fdtaddr
+         * therefore do not call after loading the device tree*/
+        parseBootEnvScript();
     }
 
     return 0;
@@ -1097,7 +1427,14 @@ int checkboard(void)
             printf("No uP2 reset due to POST %x\n", post_boot_mode);
         }
     }
-
+#ifdef CONFIG_HAB_REVOCATION_TEST_IMAGE
+    if(silentBootIsRequired())
+    {
+        printf("\n\n*************************************************************************\n");
+        printf(    "Silent boot would have been enabled in standard M48 U-Boot configuration\n");
+        printf(  "\n*************************************************************************\n\n");
+    }
+#endif
     return 0;
 }
 

@@ -63,7 +63,7 @@ typedef struct {
     {
         uint32_t result;
         uint32_t magic;
-    } post_scriptTest;
+    } deprecated_post_scriptTest; /* u-boot scripts have been removed due to imx6 HAB security concerns, hence this test is deprecated */
     struct
     {
         uint32_t result;
@@ -73,7 +73,6 @@ typedef struct {
 } PmBootData;
 
 extern PmBootData* m48PmData;
-extern char*       m48PmUsrData;
 
 /* call this after modifying the PmBootData data structure */
 extern void updateM48PmStructChecksum(void);

@@ -239,7 +239,9 @@ int fs_read(const char *filename, ulong addr, int offset, int len)
 
 	/* If we requested a specific number of bytes, check we got it */
 	if (ret >= 0 && len && ret != len) {
-		printf("** Unable to read file %s **\n", filename);
+		printf("** Unable to read requested number of bytes from file %s **\n", filename);
+		printf("** requested: %d **\n", len);
+		printf("** actual:    %d **\n", ret);
 		ret = -1;
 	}
 	fs_close();

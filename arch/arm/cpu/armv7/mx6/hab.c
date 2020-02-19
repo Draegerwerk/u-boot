@@ -71,6 +71,11 @@
 	((hab_rvt_exit_t *)HAB_RVT_EXIT)			\
 )
 
+hab_rvt_report_status_t* getHabRvtReportStatusFunctionPointer(void)
+{
+    return hab_rvt_report_status_p;
+}
+
 #define IVT_SIZE		0x20
 #define ALIGN_SIZE		0x1000
 #define CSF_PAD_SIZE		0x2000
@@ -421,7 +426,8 @@ uint32_t authenticate_image(uint32_t ddr_start, uint32_t image_size)
 			puts("hab entry function fail\n");
 		}
 
-		hab_caam_clock_enable(0);
+		/* if caam clock is disabled again, the kernel will not start */
+		/* hab_caam_clock_enable(0); */
 
 		get_hab_status();
 	} else {

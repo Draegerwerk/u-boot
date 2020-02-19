@@ -34,9 +34,22 @@ static int mmc_load_image_raw(struct mmc *mmc, unsigned long sector)
 
 	spl_parse_image_header(header);
 
+#ifdef CONFIG_SECURE_BOOT
+
+	/* values defined in hab.c  */
+#define IVT_SIZE        0x20
+#define ALIGN_SIZE      0x1000
+#define CSF_PAD_SIZE    0x2000
+
+	/* convert padded size plus IVT and CSF header to sectors - round up */
+	image_size_sectors = ( ((spl_image.size + ALIGN_SIZE - 1) & ~(ALIGN_SIZE - 1))
+	    + IVT_SIZE + CSF_PAD_SIZE +  mmc->read_bl_len - 1) /
+	        mmc->read_bl_len;
+#else
 	/* convert size to sectors - round up */
 	image_size_sectors = (spl_image.size + mmc->read_bl_len - 1) /
 				mmc->read_bl_len;
+#endif
 
 	/* Read the header too to avoid extra memcpy */
 	err = mmc->block_dev.block_read(0, sector, image_size_sectors,

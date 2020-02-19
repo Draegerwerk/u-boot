@@ -7,7 +7,6 @@
  * SPDX-License-Identifier:     GPL-2.0+
  *
  */
-
 #include <common.h>
 #include <i2c.h>
 #include <asm/io.h>
@@ -15,6 +14,7 @@
 #include <asm/arch/iomux.h>
 #include <asm/arch/mx6-pins.h>
 #include <asm/arch/sys_proto.h>
+#include <asm/arch/hab.h>
 #include <asm/imx-common/boot_mode.h>
 #include <asm/imx-common/iomux-v3.h>
 #include <asm/imx-common/mxc_i2c.h>
@@ -235,6 +235,7 @@ void board_init_f(ulong dummy)
     /* UART clocks enabled and gd valid - init serial console */
     preloader_console_init();
 
+
     /* iomux and setup of i2c */
     i2c_setup_iomux();
 
@@ -266,6 +267,23 @@ void board_init_f(ulong dummy)
 
     /* load/boot image from boot device */
     board_init_r(NULL, 0);
+}
+
+void __noreturn jump_to_image_no_args(struct spl_image_info *spl_image)
+{
+    typedef void __noreturn (*image_entry_noargs_t)(void);
+
+    image_entry_noargs_t image_entry =
+            (image_entry_noargs_t) spl_image->entry_point;
+
+    debug("M48 image entry point: 0x%X\n", spl_image->entry_point);
+
+    if ( ! authenticate_image(spl_image->load_addr, spl_image->size)) {
+        printf("M48 image authentication failed\n");
+        reset_cpu(0);
+    }
+
+    image_entry();
 }
 
 void reset_cpu(ulong addr)

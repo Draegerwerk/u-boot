@@ -13,7 +13,12 @@ int board_video_skip(void)
 {
 	int i;
 	int ret;
-	char const *panel = getenv("panel");
+	char const *panel;
+	if(!display_count)
+	{
+	    return -EINVAL;
+	}
+	panel = getenv("panel");
 	if (!panel) {
 		for (i = 0; i < display_count; i++) {
 			struct display_info_t const *dev = displays+i;
@@ -48,6 +53,11 @@ int board_video_skip(void)
 			       displays[i].mode.name, ret);
 	} else {
 		printf("unsupported panel %s\n", panel);
+		printf("supported panels:\n");
+		for (i = 0; i < display_count; i++) {
+            printf("%s\n", displays[i].mode.name);
+        }
+		printf("\n");
 		return -EINVAL;
 	}
 

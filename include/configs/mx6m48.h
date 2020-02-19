@@ -40,6 +40,7 @@
 #define CONFIG_DEFAULT_FDT_FILE "invalid.dtb"
 
 #define PHYS_SDRAM_SIZE		(2u * 1024 * 1024 * 1024)
+#define CONFIG_PM_RESERVED_MEM (5412u * 4096u) /* needs to stay the same as setting PM_RESERVED_MEM in kernel configuration script */
 
 #define CONFIG_MX6
 
@@ -190,24 +191,12 @@
         "if test ${use_tftp} != force; then " \
             "mmc dev ${mmcdev}; " \
             "if mmc rescan ; then " \
-                "if test -e mmc ${mmcdev}:${mmcpart} ${runoncescript}; then " \
-                    "run runonce;" \
-                "fi;" \
                 "for partition in 1 2 3 4; do " \
                     "setenv mmcpart ${partition}; " \
                     "echo Booting from partition ${mmcpart}; " \
-                    "result=0; " \
-                    "if test -e mmc ${mmcdev}:${mmcpart} ${envscript}; then " \
-                        "if run readbootenv; then ; else result=1; fi;"\
-                    "fi; " \
-                    "if test ${result} -eq 0 -a -e mmc ${mmcdev}:${mmcpart} ${script}; then " \
-                        "if run startbootscr; then ; else result=1; fi;" \
-                    "fi; " \
-                    "if test ${result} -eq 0 ; then " \
                         "if run loadimage; then " \
                             "run ramboot; " \
                         "fi; " \
-                    "fi; " \
                 "done;" \
             "fi; " \
         "fi; " \
@@ -219,12 +208,11 @@
         "fi\0" \
     "use_tftp=no\0"\
     "loadimage="\
-        "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${imagepath}/${image_name} && fatload mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${imagepath}/${fdt_name}\0" \
+        "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${imagepath}/${image_name} && setexpr auth_krnl  ${filesize} - 2020" \
+        "&& fatload mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${imagepath}/${fdt_name} && setexpr auth_fdt  ${filesize} - 2020\0" \
     "loadtftp="\
-        "tftp ${loadaddr} ${imagepath}/${image_name} && tftp ${fdtaddr} ${imagepath}/${fdt_name}\0" \
-    "script=boot.scr\0" \
-    "envscript=bootenv.scr\0" \
-    "runoncescript=runonce.scr\0" \
+        "tftp ${loadaddr} ${imagepath}/${image_name} && setexpr auth_krnl  ${filesize} - 2020" \
+        "&& tftp ${fdtaddr} ${imagepath}/${fdt_name} && setexpr auth_fdt  ${filesize} - 2020\0" \
     "image_name=uVxWorks1\0" \
     "imagepath=boot\0" \
     "fdt_name=" CONFIG_DEFAULT_FDT_FILE "\0" \
@@ -244,27 +232,33 @@
     "initrd_high=0xffffffff\0" \
     "mmcdev=" __stringify(CONFIG_SYS_MMC_ENV_DEV) "\0" \
     "mmcpart=1\0" \
-    "loadbootscript=" \
-        "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script}\0" \
-    "loadenvscript=" \
-        "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${envscript}\0" \
-    "loadrunoncescript=" \
-        "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${runoncescript}\0" \
-    "startbootscript=echo Running bootscript from mmc ...; " \
-        "source\0" \
-    "startenvscript=echo Running envscript from mmc ...; " \
-        "source\0" \
-    "startrunoncescript=echo Running runonce from mmc ...; " \
-        "source\0" \
-    "startbootscr=if run loadbootscript; then run startbootscript; fi\0" \
-    "readbootenv=if run loadenvscript; then run startenvscript; fi\0" \
-    "runonce=if run loadrunoncescript; then run startrunoncescript; fi\0" \
-    "ramboot=bootm ${loadaddr} - ${fdtaddr}\0"
+    "ramboot=if hab_auth_img ${loadaddr} ${auth_krnl} || hab_auth_img ${fdtaddr} ${auth_fdt}; then ;"\
+        "else "\
+            "bootm ${loadaddr} - ${fdtaddr};"\
+        "fi\0"
 
     /* "post_poweron=board_reset watchdog\0" */
 
 #define CONFIG_BOOTCOMMAND \
     "run autoboot; logo"
+
+#ifdef CONFIG_HAB_REVOCATION_TEST_IMAGE
+/* make sure that only a kernel and dtb signed by us gets booted */
+#undef CONFIG_BOOTCOMMAND
+/* addresses hard coded to prevent environment tinkering */
+#define CONFIG_BOOTCOMMAND \
+    "echo Booting SRK revocation test kernel \
+    && fatload mmc 0:1 0x100FFFC0 boot/uVxWorks1 && setexpr auth_krnl  ${filesize} - 2020 \
+    && fatload mmc 0:1 0x18000000 boot/${fdt_name} && setexpr auth_fdt  ${filesize} - 2020 \
+    && if hab_auth_img 0x100FFFC0 ${auth_krnl} || hab_auth_img 0x18000000 ${auth_fdt}; then halt; \
+       else bootm 0x100FFFC0 - 0x18000000; fi;"
+
+/* HAB revocation image shall not be interruptible */
+#undef CONFIG_AUTOBOOT_KEYED
+#undef CONFIG_ZERO_BOOTDELAY_CHECK
+#undef CONFIG_BOOTDELAY
+#define CONFIG_BOOTDELAY  0
+#endif
 
 #define CONFIG_ARP_TIMEOUT     200UL
 
