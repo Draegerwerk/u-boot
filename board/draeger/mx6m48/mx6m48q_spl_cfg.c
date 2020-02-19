@@ -74,8 +74,8 @@ m48_configuration ddr_setup_mx6q [] =
  /* MDSCR    con_req */
  {MX6_MMDC_P0_MDSCR,       0x00008000},
 
- {MX6_MMDC_P0_MPZQHWCTRL,  0xA1390003},
- {MX6_MMDC_P1_MPZQHWCTRL,  0xA1390003},
+ {MX6_MMDC_P0_MPZQHWCTRL,  0xA139001F},
+ {MX6_MMDC_P1_MPZQHWCTRL,  0xA139001F},
 
 };
 int ddr_setup_mx6q_size = ARRAY_SIZE(ddr_setup_mx6q);
@@ -103,19 +103,44 @@ m48_configuration ram_setup_mx6q [] =
 
  {MX6_MMDC_P0_MDPDC,       0x00020036},
 
- /* tRFC(4GB)=243*1.07ns=260ns */
- /* RFC=260ns / 528 MHz = 138 */
- /* RFC=138; XS=143; XP=4; XDPLL=13; FAW=4; CL=8 -> SDRAM MR0;  */
- {MX6_MMDC_P0_MDCFG0,      0x898E7935},
+ {MX6_MMDC_P0_MDCFG0,      0x898E7955},
+ /* MMDCx_MDCFG0 p. 3869 in [M48_DS_IMX_RMDQ_5]
+  * 0x    8    9    8    E    7    9    5    5
+  * 0b 1000 1001 1000 1110 0111 1001 0101 0101
+  *    |||| |||| |||| |||| |||| |||| |||| ++++- tCL: 5: 8 clocks: 8 * 1.894ns > 13.91ns. Must match with MR0 of DDR3
+  *                                             [M48_DS_DDR3_MICRON_R] p. 1: 13.91ns
+  *                                             [M48_DS_DDR3_ISSI_I1] p. 1: 13.75ns
+  *                                             [M48_DS_DDR3_ALLIANCE_1.1] p. 2: 13.75ns
+  *    |||| |||| |||| |||| |||| |||+ ++++------ tFAW: 0x15: 22 clocks: 22 * 1.894ns > 40ns
+  *                                             [M48_DS_DDR3_MICRON_R] p. 96, 2k page size: 35ns
+  *                                             [M48_DS_DDR3_ISSI_I1] p. 64, 2k page size: 40ns
+  *                                             [M48_DS_DDR3_ALLIANCE_1.1] p. 34, 2k page size: 40ns
+  *    |||| |||| |||| |||| |||+ +++------------ tXPDLL: 0xC: 13 clocks: max of 10CK or 24ns. 13 * 1.894ns is > 24ns
+  *                                             [M48_DS_DDR3_MICRON_R] p. 98
+  *                                             [M48_DS_DDR3_ISSI_I1] p. 65
+  *                                             [M48_DS_DDR3_ALLIANCE_1.1] p. 36
+  *    |||| |||| |||| |||| +++----------------- tXP: 3: 4 cycles: max of 3CK or 6ns. 4 * 1.894 is > 6ns
+  *                                             [M48_DS_DDR3_MICRON_R] p. 98
+  *                                             [M48_DS_DDR3_ISSI_I1] p. 65
+  *                                             [M48_DS_DDR3_ALLIANCE_1.1] p. 36
+  *    |||| |||| ++++ ++++--------------------- tXS: 0x8E: 143 clocks: max of 5CK or 270ns. 143 * 1.894ns is > 270ns
+  *                                             [M48_DS_DDR3_MICRON_R] p. 97:  tRFC + 10ns = 270ns
+  *                                             [M48_DS_DDR3_ISSI_I1] p. 64: tRFC + 10ns = 270ns
+  *                                             [M48_DS_DDR3_ALLIANCE_1.1] p. 35: tRFC + 10ns = 270ns
+  *    ++++ ++++------------------------------- tRFC: 0x89, 138 clocks: 260ns. 138 * 1.894ns is > 260ns
+  *                                             [M48_DS_DDR3_MICRON_R] p. 33: 243 * 1.07ns = 260ns
+  *                                             [M48_DS_DDR3_ISSI_I1] p. 55
+  *                                             [M48_DS_DDR3_ALLIANCE_1.1] p. 35
+  */
 
  /* RCD=8; RP=8; RC=26; RAS=20; RPA=1; WR=8->SDRAM MR0; */
  /* MRD=12; CWL=6 -> SDRAM MR2 */
- {MX6_MMDC_P0_MDCFG1,      0xFF533F64},
+ {MX6_MMDC_P0_MDCFG1,      0xFF328F64},
  /* RRD=4; WTR=4; RTP=4; DLLK=512 */
  {MX6_MMDC_P0_MDCFG2,      0x01FF00DB},
  /* ODT_idle_off=4 (AL=0); ODTLon=4; AXPD=5 (CWL-1) */
  /* ANPD=5 (CWL-1); AONPD=3; AOFPD=3 */
- {MX6_MMDC_P0_MDOTC,       0x12444040},
+ {MX6_MMDC_P0_MDOTC,       0x24444040},
 
  /* RL=AL+CL */
  /* RTW=AL+CL+CCD-CWL+2CK=0+8+4-6+2=8  */
@@ -125,10 +150,10 @@ m48_configuration ram_setup_mx6q [] =
  /* CALIB_PER_CS=0 (CS0); ADDR_MIRROR=1; LHD=0; WALAT=0 */
  /* BI_ON=1; LPDDR2_S2=0; MIF3_MODE=3; RALAT=0 (AL) */
  /* DDR_4_BANK=0; DDR_TYPE=0; LPDDR2_2CH=0; RST=0; */
- {MX6_MMDC_P0_MDMISC,         0x0001740},
+ {MX6_MMDC_P0_MDMISC,         0x0011740},
 
  /* XPR=RFC+10ns=138+6=144; SDE_to_RST=14(JEDEC); RST_toCKE=33 (JEDEC); */
- {MX6_MMDC_P0_MDOR,        0x008F1023},
+ {MX6_MMDC_P0_MDOR,        0x008E1023},
  {MX6_MMDC_P0_MDASP,       0x00000047},
 
  /* configure density and burst length */
