@@ -1089,9 +1089,9 @@ int checkboard(void)
         if ( post_boot_mode != 0 && ! (post_boot_mode & POST_POWERTEST)) {
 
             printf("reseting uP2 %x\n", post_boot_mode);
-            gpio_direction_output(CONFIG_GPIO_BOARD_WARM_RESET, 0);
+            gpio_direction_output(CONFIG_GPIO_BOARD_COLD_RESET, 0);
             udelay(500);
-            gpio_direction_output(CONFIG_GPIO_BOARD_WARM_RESET, 1);
+            gpio_direction_output(CONFIG_GPIO_BOARD_COLD_RESET, 1);
 
         } else {
             printf("No uP2 reset due to POST %x\n", post_boot_mode);
