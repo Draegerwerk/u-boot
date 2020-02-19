@@ -55,12 +55,12 @@ void checkWarmstart()
     	if ( post_boot_mode != 0 && ! (post_boot_mode & POST_POWERTEST)) {
     		WATCHDOG_RESET();
     		puts("reseting uP1\n");
-    		gpio_direction_output(CONFIG_GPIO_BOARD_WARM_RESET, 0);
+    		gpio_direction_output(CONFIG_GPIO_BOARD_COLD_RESET, 0);
     		for (i=0; i< 800; i++) {
     			udelay(1000);
     		}
     		WATCHDOG_RESET();
-    		gpio_direction_output(CONFIG_GPIO_BOARD_WARM_RESET, 1);
+    		gpio_direction_output(CONFIG_GPIO_BOARD_COLD_RESET, 1);
     		puts("reseting uP1 done\n");
     	} else {
     		printf("No uP1 reset due to POST %x\n", post_boot_mode);
