@@ -20,37 +20,64 @@
 /* this test is part of the reset test in order to avoid an additional
 *  reboot of the board
 */
-#define TEST_SIZE  (0xa00 * 0x1000)
-#define PM_BSP_MAGIC        0x07101973
+DECLARE_GLOBAL_DATA_PTR;
+#define PERSISTEN_MEMORY_TEST_SIZE    (CONFIG_PM_RESERVED_MEM)
+#define PERSISTEN_MEMORY_TEST_PATTERN (0x96)
+
+static char* getPmMemoryRegionInDDR3(void)
+{
+    uint64_t address;
+    address = CONFIG_SYS_SDRAM_BASE + gd->ram_size - CONFIG_PM_RESERVED_MEM; /* VxWorks PM region is at the End of DDR3 addr space*/
+    if(  (address <  CONFIG_SYS_SDRAM_BASE)
+       ||(address >= CONFIG_SYS_SDRAM_BASE + PHYS_SDRAM_1_SIZE))
+    {
+        return (char*)NULL;
+    } else {
+        return (char*)address;
+    }
+}
 
 void initializePMSaveMemory(void)
 {
-    char* pm_usr_addr = (char*) CONFIG_SYS_PM_USR_ADDR;
+    char* m48PmUsrData;
+    m48PmUsrData = getPmMemoryRegionInDDR3();
     post_log("\ninitializePMSaveMemory\n");
-    memset(pm_usr_addr, 0x96, TEST_SIZE);
-    flush_dcache_all();
+    if(m48PmUsrData) {
+        post_log("start addr: %p\n", m48PmUsrData);
+        post_log("size: %zu\n", PERSISTEN_MEMORY_TEST_SIZE);
+        memset(m48PmUsrData, PERSISTEN_MEMORY_TEST_PATTERN, PERSISTEN_MEMORY_TEST_SIZE);
+        flush_dcache_all();
+    } else {
+        post_log("failed\n");
+    }
 }
 
 void checkPMSaveMemory(void)
 {
     int i;
-    char* pm_usr_addr = (char*) CONFIG_SYS_PM_USR_ADDR;
-
-    for (i=0; i < TEST_SIZE; i++) {
-        if (pm_usr_addr[i] != 0x96) {
-            break;
+    char* m48PmUsrData;
+    m48PmUsrData = getPmMemoryRegionInDDR3();
+    if(m48PmUsrData) {
+        for (i = 0; i < PERSISTEN_MEMORY_TEST_SIZE; i++) {
+            if (m48PmUsrData[i] != PERSISTEN_MEMORY_TEST_PATTERN) {
+                break;
+            }
         }
     }
-    if (i == TEST_SIZE) {
+    if ((i == PERSISTEN_MEMORY_TEST_SIZE) && (m48PmUsrData != NULL)) {
     	m48PmData->post_pmTest.result = M48_TS_PASS;
         post_log("\ncheckPMSaveMemory PASSED\n");
     } else {
     	m48PmData->post_pmTest.result = M48_TS_FAIL;
-        post_log("\ncheckPMSaveMemory, failed %08x+%d data %02x\n", pm_usr_addr, i, pm_usr_addr[i]);
+    	post_log("\ncheckPMSaveMemory, failed");
+    	if(m48PmUsrData) {
+    	    post_log(" %08x+%d data %02x\n", m48PmUsrData, i, m48PmUsrData[i]);
+    	} else {
+    	    post_log("\n");
+    	}
     }
     m48PmData->post_pmTest.magic = PM_MEMORY_MAGIC;
     updateM48PmStructChecksum();
-
 }
 
 

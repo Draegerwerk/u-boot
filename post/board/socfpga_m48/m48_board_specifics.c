@@ -49,26 +49,4 @@ int board_test_run_always (int flags) {
 
 #endif
 
-static int do_scTestResult(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
-{
-    uint32_t result;
-
-    if (argc != 2)
-        return cmd_usage(cmdtp);
-
-    result = simple_strtoul(argv[1], NULL, 16);
-
-    m48PmData->post_scriptTest.magic = PM_MEMORY_MAGIC;
-    m48PmData->post_scriptTest.result = result;
-    updateM48PmStructChecksum();
-
-    return 0;
-}
-
-U_BOOT_CMD(
-        scrtest, 2, 0, do_scTestResult,
-       "store the result of the script test into m48PmBspData",
-       "scrtest <result>"
-       );
-
 #endif

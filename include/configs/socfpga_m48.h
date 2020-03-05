@@ -104,8 +104,9 @@
 #define CONFIG_POST_EXTERNAL_WORD_FUNCS
 /* #define CONFIG_SYS_PMSTRUCT_ADDR 0x3ffff000 */
 #define CONFIG_SYS_PMSTRUCT_ADDR 0xfffff800
-#define CONFIG_SYS_PM_USR_ADDR   0x3f5fE000
-#define CONFIG_SYS_PM_BSP_ADDR   0x3fffE000
+#define CONFIG_PM_RESERVED_MEM (5412u * 4096u) /* needs to stay the same as setting PM_RESERVED_MEM in kernel configuration script */
+
+#define CONFIG_SYS_PM_USR_ADDR   ((char *)((CONFIG_SYS_SDRAM_BASE)+(PHYS_SDRAM_1_SIZE)-(CONFIG_PM_RESERVED_MEM)))
 
 #define CONFIG_POST_BSPEC1    {             \
     "Board reset test",             \
@@ -267,12 +268,9 @@
         "if test ${use_tftp} != force; then " \
             "mmc dev ${mmcdev}; " \
             "if mmc rescan ; then " \
-                "run runonce;" \
                 "for partition in 1 2 3 4; do " \
                     "setenv mmcpart ${partition}; " \
                     "echo Booting from partition ${mmcpart}; " \
-                    "run readbootenv;" \
-                    "run startbootscr;" \
                     "if run loadimage; then " \
                         "run ramboot; " \
                     "fi; " \
@@ -299,9 +297,6 @@
             "run fpgaloadtftp; " \
         "fi\0" \
     "loadqspi=run fpgaloadqspi\0" \
-    "script=boot.scr\0" \
-    "envscript=bootenv.scr\0" \
-    "runoncescript=runonce.scr\0" \
     "image_name=uVxWorks2\0" \
     "imagepath=boot\0" \
     "fdt_name=altsoc-m48.dtb\0" \
@@ -318,21 +313,6 @@
     "netretry=20\0" \
     "mmcdev=0\0" \
     "mmcpart=1\0" \
-    "loadbootscript=" \
-        "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script}\0" \
-    "loadenvscript=" \
-        "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${envscript}\0" \
-    "loadrunoncescript=" \
-        "fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${runoncescript}\0" \
-    "startbootscript=echo Running bootscript from mmc ...; " \
-        "source\0" \
-    "startenvscript=echo Running envscript from mmc ...; " \
-        "source\0" \
-    "startrunoncescript=echo Running runoncescript from mmc ...; " \
-        "source\0" \
-    "startbootscr=if run loadbootscript; then run startbootscript; fi\0" \
-    "readbootenv=if run loadenvscript; then run startenvscript; fi\0" \
-    "runonce=if run loadrunoncescript; then run startrunoncescript; fi\0" \
     "ramboot=bootm ${loadaddr} - ${fdtaddr}\0" \
     "loadaddr=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
     "fpgaloadprimary=" \
@@ -504,15 +484,14 @@
 #ifdef CONFIG_SOCFPGA_VIRTUAL_TARGET
 #define PHYS_SDRAM_1_SIZE       0x80000000
 #else
-/* Put to 32MB as the smallest SDRAM size to prevent mtest from failing */
-#define PHYS_SDRAM_1_SIZE       0x02000000
+#define PHYS_SDRAM_1_SIZE       0x40000000
 #endif
 /* SDRAM Bank #1 base address */
 #define PHYS_SDRAM_1            CONFIG_SYS_SDRAM_BASE
 /* U-Boot memtest setup */
 /* Begin and end addresses of the area used by the simple memory test.c */
 #define CONFIG_SYS_MEMTEST_START    0x00000000
-#define CONFIG_SYS_MEMTEST_END      PHYS_SDRAM_1_SIZE
+#define CONFIG_SYS_MEMTEST_END      0x02000000
 
 
 /*
