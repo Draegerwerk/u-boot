@@ -432,6 +432,10 @@ int initr_dataflash(void)
  */
 static int should_load_env(void)
 {
+#ifdef CONFIG_HAB_REVOCATION_TEST_IMAGE
+    return 0;
+#endif
+
 #ifdef CONFIG_OF_CONTROL
 	return fdtdec_get_config_int(gd->fdt_blob, "load-environment", 1);
 #elif defined CONFIG_DELAY_ENVIRONMENT
