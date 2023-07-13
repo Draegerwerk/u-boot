@@ -281,4 +281,7 @@ struct socfpga_sdrseq {
 int sdram_calibration_full(struct socfpga_sdr *sdr);
 bool dram_is_ddr(const u8 ddr);
 
+unsigned int getPhyCfgPresetValue(void);
+void storePhyCfgPresetValue(unsigned int preset);
+
 #endif /* _SEQUENCER_H_ */

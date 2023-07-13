@@ -33,7 +33,6 @@ obj-$(CONFIG_OF_LIBFDT) += bootm-fdt.o
 obj-$(CONFIG_CMD_BOOTI) += bootm.o image.o
 obj-$(CONFIG_CMD_BOOTM) += bootm.o
 obj-$(CONFIG_CMD_BOOTZ) += bootm.o zimage.o
-obj-$(CONFIG_SYS_L2_PL310) += cache-pl310.o
 else
 obj-$(CONFIG_$(SPL_TPL_)FRAMEWORK) += spl.o
 obj-$(CONFIG_SPL_FRAMEWORK) += zimage.o
@@ -42,6 +41,7 @@ endif
 obj-$(CONFIG_$(SPL_TPL_)USE_ARCH_MEMSET) += memset.o
 obj-$(CONFIG_$(SPL_TPL_)USE_ARCH_MEMCPY) += memcpy.o
 obj-$(CONFIG_SEMIHOSTING) += semihosting.o
+obj-$(CONFIG_SYS_L2_PL310) += cache-pl310.o
 
 obj-y	+= bdinfo.o
 obj-y	+= sections.o

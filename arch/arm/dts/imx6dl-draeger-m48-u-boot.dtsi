@@ -1,0 +1,8 @@
+/*
+ *  (C) Copyright 2020 Draeger and Licensors, info@draeger.com
+ *
+ *  SPDX-License-Identifier: GPL-2.0+
+ *  Device Tree file for Drager M48 Board
+ */
+
+#include "imx6qdl-draeger-m48-u-boot.dtsi"

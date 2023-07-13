@@ -1,0 +1,6 @@
+SOCFPGA M48 BOARD
+M:	Olaf Bähring <olaf.baehring@draeger.com>
+S:	Maintained
+F:	board/draeger/socfpga_m48/
+F:	include/configs/draeger_socfpga_m48.h
+F:	configs/draeger_socfpga_m48_defconfig

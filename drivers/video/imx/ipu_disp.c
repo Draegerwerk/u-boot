@@ -48,10 +48,10 @@ int dmfc_type_setup;
 static int dmfc_size_28, dmfc_size_29, dmfc_size_24, dmfc_size_27, dmfc_size_23;
 int g_di1_tvout;
 
-extern struct clk *g_ipu_clk;
-extern struct clk *g_ldb_clk;
-extern struct clk *g_di_clk[2];
-extern struct clk *g_pixel_clk[2];
+extern struct ipu_clk *g_ipu_clk;
+extern struct ipu_clk *g_ldb_clk;
+extern struct ipu_clk *g_di_clk[2];
+extern struct ipu_clk *g_pixel_clk[2];
 
 extern unsigned char g_ipu_clk_enabled;
 extern unsigned char g_dc_di_assignment[];
@@ -643,7 +643,7 @@ void ipu_dp_dc_enable(ipu_channel_t channel)
 	reg |= 4 << DC_WR_CH_CONF_PROG_TYPE_OFFSET;
 	__raw_writel(reg, DC_WR_CH_CONF(dc_chan));
 
-	clk_enable(g_pixel_clk[di]);
+	ipu_clk_enable(g_pixel_clk[di]);
 }
 
 static unsigned char dc_swap;
@@ -733,7 +733,7 @@ void ipu_dp_dc_disable(ipu_channel_t channel, unsigned char swap)
 
 		/* Clock is already off because it must be done quickly, but
 		   we need to fix the ref count */
-		clk_disable(g_pixel_clk[g_dc_di_assignment[dc_chan]]);
+		ipu_clk_disable(g_pixel_clk[g_dc_di_assignment[dc_chan]]);
 	}
 }
 
@@ -839,7 +839,7 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 	uint32_t div, rounded_pixel_clk;
 	uint32_t h_total, v_total;
 	int map;
-	struct clk *di_parent;
+	struct ipu_clk *di_parent;
 
 	debug("panel size = %d x %d\n", width, height);
 
@@ -864,36 +864,36 @@ int32_t ipu_init_sync_panel(int disp, uint32_t pixel_clk,
 			 * Set the  PLL to be an even multiple
 			 * of the pixel clock.
 			 */
-			if ((clk_get_usecount(g_pixel_clk[0]) == 0) &&
-				(clk_get_usecount(g_pixel_clk[1]) == 0)) {
-				di_parent = clk_get_parent(g_di_clk[disp]);
+			if ((ipu_clk_get_usecount(g_pixel_clk[0]) == 0) &&
+				(ipu_clk_get_usecount(g_pixel_clk[1]) == 0)) {
+				di_parent = ipu_clk_get_parent(g_di_clk[disp]);
 				rounded_pixel_clk =
-					clk_round_rate(g_pixel_clk[disp],
+					ipu_clk_round_rate(g_pixel_clk[disp],
 						pixel_clk);
-				div  = clk_get_rate(di_parent) /
+				div  = ipu_clk_get_rate(di_parent) /
 					rounded_pixel_clk;
 				if (div % 2)
 					div++;
-				if (clk_get_rate(di_parent) != div *
+				if (ipu_clk_get_rate(di_parent) != div *
 					rounded_pixel_clk)
-					clk_set_rate(di_parent,
+					ipu_clk_set_rate(di_parent,
 						div * rounded_pixel_clk);
 				udelay(10000);
-				clk_set_rate(g_di_clk[disp],
+				ipu_clk_set_rate(g_di_clk[disp],
 					2 * rounded_pixel_clk);
 				udelay(10000);
 			}
 		}
-		clk_set_parent(g_pixel_clk[disp], g_ldb_clk);
+		ipu_clk_set_parent(g_pixel_clk[disp], g_ldb_clk);
 	} else {
-		if (clk_get_usecount(g_pixel_clk[disp]) != 0)
-			clk_set_parent(g_pixel_clk[disp], g_ipu_clk);
+		if (ipu_clk_get_usecount(g_pixel_clk[disp]) != 0)
+			ipu_clk_set_parent(g_pixel_clk[disp], g_ipu_clk);
 	}
-	rounded_pixel_clk = clk_round_rate(g_pixel_clk[disp], pixel_clk);
-	clk_set_rate(g_pixel_clk[disp], rounded_pixel_clk);
+	rounded_pixel_clk = ipu_clk_round_rate(g_pixel_clk[disp], pixel_clk);
+	ipu_clk_set_rate(g_pixel_clk[disp], rounded_pixel_clk);
 	udelay(5000);
 	/* Get integer portion of divider */
-	div = clk_get_rate(clk_get_parent(g_pixel_clk[disp])) /
+	div = ipu_clk_get_rate(ipu_clk_get_parent(g_pixel_clk[disp])) /
 		rounded_pixel_clk;
 
 	ipu_di_data_wave_config(disp, SYNC_WAVE, div - 1, div - 1);

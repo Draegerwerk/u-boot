@@ -96,6 +96,8 @@ void board_lmb_reserve(struct lmb *lmb)
 	/* adjust sp by 16K to be safe */
 	sp -= 4096 << 2;
 	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
+		if (gd->bd->bi_dram[bank].size == 0)
+			break;
 		if (sp < gd->bd->bi_dram[bank].start)
 			continue;
 		bank_end = gd->bd->bi_dram[bank].start +

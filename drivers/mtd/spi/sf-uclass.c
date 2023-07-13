@@ -30,6 +30,14 @@ int spi_flash_erase_dm(struct udevice *dev, u32 offset, size_t len)
 	return log_ret(sf_get_ops(dev)->erase(dev, offset, len));
 }
 
+int spi_flash_reset_dm(struct udevice *dev)
+{
+	struct dm_spi_flash_ops *ops = sf_get_ops(dev);
+	if (ops->reset)
+		return log_ret(ops->reset(dev));
+	return 0;
+}
+
 /*
  * TODO(sjg@chromium.org): This is an old-style function. We should remove
  * it when all SPI flash drivers use dm

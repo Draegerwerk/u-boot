@@ -287,6 +287,15 @@ static void do_bootvx_fdt(bootm_headers_t *images)
 		/* Update ethernet nodes */
 		fdt_fixup_ethernet(*of_flat_tree);
 
+#ifdef CONFIG_OF_BOARD_SETUP
+		ret = ft_board_setup(*of_flat_tree, gd->bd);
+		if (ret) {
+			printf("## ERROR: %s board-specific fdt fixup failed: %s\n",
+					__func__, fdt_strerror(ret));
+			return;
+		}
+#endif
+
 		ret = fdt_add_subnode(*of_flat_tree, 0, "chosen");
 		if ((ret >= 0 || ret == -FDT_ERR_EXISTS)) {
 			bootline = env_get("bootargs");
@@ -306,6 +315,8 @@ static void do_bootvx_fdt(bootm_headers_t *images)
 			       fdt_strerror(ret));
 			return;
 		}
+
+
 	}
 #endif
 

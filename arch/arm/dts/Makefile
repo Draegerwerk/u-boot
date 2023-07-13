@@ -355,23 +355,24 @@ dtb-$(CONFIG_TARGET_AM3517_EVM) += am3517-evm.dtb
 dtb-$(CONFIG_TI816X) += dm8168-evm.dtb
 dtb-$(CONFIG_THUNDERX) += thunderx-88xx.dtb
 
-dtb-$(CONFIG_ARCH_SOCFPGA) +=				\
-	socfpga_agilex_socdk.dtb			\
-	socfpga_arria5_secu1.dtb			\
-	socfpga_arria5_socdk.dtb			\
-	socfpga_arria10_socdk_sdmmc.dtb			\
-	socfpga_cyclone5_mcvevk.dtb			\
-	socfpga_cyclone5_is1.dtb			\
-	socfpga_cyclone5_socdk.dtb			\
-	socfpga_cyclone5_dbm_soc1.dtb			\
-	socfpga_cyclone5_de0_nano_soc.dtb		\
-	socfpga_cyclone5_de1_soc.dtb			\
-	socfpga_cyclone5_de10_nano.dtb			\
-	socfpga_cyclone5_sockit.dtb			\
-	socfpga_cyclone5_socrates.dtb			\
-	socfpga_cyclone5_sr1500.dtb			\
-	socfpga_cyclone5_vining_fpga.dtb		\
-	socfpga_stratix10_socdk.dtb
+dtb-$(CONFIG_ARCH_SOCFPGA) +=			\
+	socfpga_agilex_socdk.dtb		\
+	socfpga_arria5_secu1.dtb		\
+	socfpga_arria5_socdk.dtb		\
+	socfpga_arria10_socdk_sdmmc.dtb		\
+	socfpga_cyclone5_mcvevk.dtb		\
+	socfpga_cyclone5_is1.dtb		\
+	socfpga_cyclone5_socdk.dtb		\
+	socfpga_cyclone5_dbm_soc1.dtb		\
+	socfpga_cyclone5_de0_nano_soc.dtb	\
+	socfpga_cyclone5_de1_soc.dtb		\
+	socfpga_cyclone5_de10_nano.dtb		\
+	socfpga_cyclone5_sockit.dtb		\
+	socfpga_cyclone5_socrates.dtb		\
+	socfpga_cyclone5_sr1500.dtb		\
+	socfpga_cyclone5_vining_fpga.dtb	\
+	socfpga_stratix10_socdk.dtb		\
+	socfpga_cyclone5_draeger_m48.dtb
 
 dtb-$(CONFIG_TARGET_DRA7XX_EVM) += dra72-evm.dtb dra7-evm.dtb	\
 	dra72-evm-revc.dtb dra71-evm.dtb dra76-evm.dtb
@@ -643,6 +644,7 @@ dtb-y += \
 	imx6dl-cubox-i-emmc-som-v15.dtb \
 	imx6dl-cubox-i-som-v15.dtb \
 	imx6dl-dhcom-pdk2.dtb \
+	imx6dl-draeger-m48.dtb \
 	imx6dl-hummingboard2.dtb \
 	imx6dl-hummingboard2-emmc-som-v15.dtb \
 	imx6dl-hummingboard2-som-v15.dtb \
@@ -672,6 +674,9 @@ dtb-y += \
 	imx6q-cubox-i-som-v15.dtb \
 	imx6q-dhcom-pdk2.dtb \
 	imx6q-display5.dtb \
+	imx6q-draeger-m48.dtb \
+	imx6q-draeger-valenka-ssppm.dtb \
+	imx6q-draeger-valenka-mount.dtb \
 	imx6q-hummingboard2.dtb \
 	imx6q-hummingboard2-emmc-som-v15.dtb \
 	imx6q-hummingboard2-som-v15.dtb \

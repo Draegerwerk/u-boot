@@ -31,6 +31,9 @@
 #include <panel.h>
 
 #include <dm.h>
+#include <dm/of.h>
+#include <dm/of_access.h>
+#include <dm/uclass-internal.h>
 #include <video.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -471,7 +474,7 @@ static struct fb_info *mxcfb_init_fbinfo(void)
 	return fbi;
 }
 
-extern struct clk *g_ipu_clk;
+extern struct ipu_clk *g_ipu_clk;
 
 /*
  * Probe routine for the framebuffer driver. It is called during the
@@ -508,7 +511,7 @@ static int mxcfb_probe(struct udevice *dev, u32 interface_pix_fmt,
 	mxcfbi->udev = dev;
 
 	if (!ipu_clk_enabled())
-		clk_enable(g_ipu_clk);
+		ipu_clk_enable(g_ipu_clk);
 
 	ipu_disp_set_global_alpha(mxcfbi->ipu_ch, 1, 0x80);
 	ipu_disp_set_color_key(mxcfbi->ipu_ch, 0, 0);
@@ -584,39 +587,70 @@ enum {
 	LCD_MAX_LOG2_BPP	= VIDEO_BPP16,
 };
 
+#if defined(CONFIG_DISPLAY)
+static int enable_displays(struct udevice *dev)
+{
+	struct udevice *disp_dev;
+	int ret;
+	int num_displays = 0;
+
+	ret = uclass_first_device(UCLASS_DISPLAY, &disp_dev);
+	if (ret) {
+		return ret;
+	}
+
+	while (disp_dev) {
+		if (! display_enable(disp_dev, 16, NULL)) {
+			num_displays ++;
+		}
+		ret = uclass_next_device(&disp_dev);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	return num_displays;
+}
+#endif
+
 static int ipuv3_video_probe(struct udevice *dev)
 {
 	struct video_uc_platdata *plat = dev_get_uclass_platdata(dev);
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
-#if defined(CONFIG_DISPLAY)
-	struct udevice *disp_dev;
-#endif
 	u32 fb_start, fb_end;
 	int ret;
 
 	debug("%s() plat: base 0x%lx, size 0x%x\n",
 	      __func__, plat->base, plat->size);
 
+#if defined(CONFIG_DISPLAY)
+	ret = enable_displays(dev);
+	if ( ret < 0) {
+		return ret;
+	} else
+#endif
+
+		if (ret == 0)
+
+#if defined(CONFIG_IMX_VIDEO_SKIP)
+		{
+			ret = ipu_displays_init();
+			if (ret < 0)
+				return ret;
+			}
+		}
+#else
+		return -ENODEV;
+#endif
+
 	ret = ipu_probe();
 	if (ret)
-		return ret;
-
-	ret = ipu_displays_init();
-	if (ret < 0)
 		return ret;
 
 	ret = mxcfb_probe(dev, gpixfmt, gdisp, gmode);
 	if (ret < 0)
 		return ret;
 
-#if defined(CONFIG_DISPLAY)
-	ret = uclass_first_device(UCLASS_DISPLAY, &disp_dev);
-	if (disp_dev) {
-		ret = display_enable(disp_dev, 16, NULL);
-		if (ret < 0)
-			return ret;
-	}
-#endif
 	if (CONFIG_IS_ENABLED(PANEL)) {
 		struct udevice *panel_dev;
 

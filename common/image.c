@@ -1486,14 +1486,14 @@ int boot_get_fpga(int argc, char *const argv[], bootm_headers_t *images,
 			name = "full";
 			err = fpga_loadbitstream(devnum, (char *)img_data,
 						 img_len, BIT_FULL);
-			if (err)
+			if (err > 0)
 				err = fpga_load(devnum, (const void *)img_data,
 						img_len, BIT_FULL);
 		} else {
 			name = "partial";
 			err = fpga_loadbitstream(devnum, (char *)img_data,
 						 img_len, BIT_PARTIAL);
-			if (err)
+			if (err > 0)
 				err = fpga_load(devnum, (const void *)img_data,
 						img_len, BIT_PARTIAL);
 		}

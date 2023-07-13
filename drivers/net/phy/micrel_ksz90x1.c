@@ -45,13 +45,33 @@
 static int ksz90xx_startup(struct phy_device *phydev)
 {
 	unsigned phy_ctl;
+	unsigned mii_reg;
 	int ret;
+	int retrys = 3;
 
-	ret = genphy_update_link(phydev);
-	if (ret)
-		return ret;
 
-	phy_ctl = phy_read(phydev, MDIO_DEVAD_NONE, MII_KSZ90xx_PHY_CTL);
+	do {
+		ret = genphy_update_link(phydev);
+		if (ret)
+			return ret;
+
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
+		phy_ctl = phy_read(phydev, MDIO_DEVAD_NONE, MII_KSZ90xx_PHY_CTL);
+
+		if ( !(mii_reg & BMSR_ANEGCOMPLETE) ||
+				(phy_ctl & (MIIM_KSZ90xx_PHYCTL_1000 | MIIM_KSZ90xx_PHYCTL_100 | MIIM_KSZ90xx_PHYCTL_10)) == 0) {
+			printf ("ksz90xx_startup = %x restart auto negotiation\n", phy_ctl);
+			ret = genphy_restart_aneg(phydev);
+			if (ret)
+				return ret;
+		} else {
+			break;
+		}
+		retrys --;
+	} while (retrys > 0);
+
+	if (retrys <= 0)
+		return -EIO;
 
 	if (phy_ctl & MIIM_KSZ90xx_PHYCTL_DUPLEX)
 		phydev->duplex = DUPLEX_FULL;

@@ -54,6 +54,8 @@ static void print_bi_dram(const struct bd_info *bd)
 
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; ++i) {
 		if (bd->bi_dram[i].size) {
+			if (bd->bi_dram[i].size == 0)
+				break;
 			bdinfo_print_num("DRAM bank",	i);
 			bdinfo_print_num("-> start",	bd->bi_dram[i].start);
 			bdinfo_print_num("-> size",	bd->bi_dram[i].size);

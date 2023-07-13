@@ -43,18 +43,43 @@ int fixedphy_probe(struct phy_device *phydev)
 	/* fixed-link phy must not be reset by core phy code */
 	phydev->flags |= PHY_FLAG_BROKEN_RESET;
 
+	/* Get the optional phandle id of the device is connected to the */
+	/* fixed links that needs to be probed.                          */
+	priv->device_phandle_id = fdtdec_get_int(gd->fdt_blob, ofnode,
+	                                         "fixed-device-handle", -1);
+	priv->devp = NULL;
+
 	return 0;
 }
 
 int fixedphy_startup(struct phy_device *phydev)
 {
 	struct fixed_link *priv = phydev->priv;
+	int ret;
 
 	phydev->asym_pause = priv->asym_pause;
 	phydev->pause = priv->pause;
 	phydev->duplex = priv->duplex;
 	phydev->speed = priv->link_speed;
 	phydev->link = 1;
+
+	if (priv->device_phandle_id >= 0)
+	{
+		if (priv->devp == NULL)
+		{
+			/* Get and implictly probe the device connected to fixed link */
+			ret = uclass_get_device_by_phandle_id(UCLASS_MISC,
+			                                      priv->device_phandle_id,
+			                                      &priv->devp);
+
+			if (ret)
+			{
+				priv->devp = NULL;
+
+				return 0;
+			}
+		}
+	}
 
 	return 0;
 }

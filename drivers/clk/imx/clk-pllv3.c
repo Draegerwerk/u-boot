@@ -28,6 +28,9 @@
 #define BM_PLL_POWER		(0x1 << 12)
 #define BM_PLL_ENABLE		(0x1 << 13)
 #define BM_PLL_LOCK		(0x1 << 31)
+#define BM_PLL_BYPASS		(0x1 << 16)
+
+#define BM_PLL_DIV_SELECT_125MHZ	(0x3 <<  0)
 
 struct clk_pllv3 {
 	struct clk	clk;
@@ -90,6 +93,11 @@ static int clk_pllv3_generic_enable(struct clk *clk)
 
 	val |= pll->enable_bit;
 
+	writel(val, pll->base);
+
+	while (!(readl(pll->base) & BM_PLL_LOCK))
+		;
+	val |= BM_PLL_ENABLE;
 	writel(val, pll->base);
 
 	return 0;

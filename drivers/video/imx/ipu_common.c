@@ -88,7 +88,7 @@ struct ipu_ch_param {
 #define IPUV3_CLK_MX6Q		264000000
 #define IPUV3_CLK_MX6DL		198000000
 
-void clk_enable(struct clk *clk)
+void ipu_clk_enable(struct ipu_clk *clk)
 {
 	if (clk) {
 		if (clk->usecount++ == 0) {
@@ -97,7 +97,7 @@ void clk_enable(struct clk *clk)
 	}
 }
 
-void clk_disable(struct clk *clk)
+void ipu_clk_disable(struct ipu_clk *clk)
 {
 	if (clk) {
 		if (!(--clk->usecount)) {
@@ -107,7 +107,7 @@ void clk_disable(struct clk *clk)
 	}
 }
 
-int clk_get_usecount(struct clk *clk)
+int ipu_clk_get_usecount(struct ipu_clk *clk)
 {
 	if (clk == NULL)
 		return 0;
@@ -115,7 +115,7 @@ int clk_get_usecount(struct clk *clk)
 	return clk->usecount;
 }
 
-u32 clk_get_rate(struct clk *clk)
+u32 ipu_clk_get_rate(struct ipu_clk *clk)
 {
 	if (!clk)
 		return 0;
@@ -123,7 +123,7 @@ u32 clk_get_rate(struct clk *clk)
 	return clk->rate;
 }
 
-struct clk *clk_get_parent(struct clk *clk)
+struct ipu_clk *ipu_clk_get_parent(struct ipu_clk *clk)
 {
 	if (!clk)
 		return 0;
@@ -131,7 +131,7 @@ struct clk *clk_get_parent(struct clk *clk)
 	return clk->parent;
 }
 
-int clk_set_rate(struct clk *clk, unsigned long rate)
+int ipu_clk_set_rate(struct ipu_clk *clk, unsigned long rate)
 {
 	if (!clk)
 		return 0;
@@ -142,7 +142,7 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 	return clk->rate;
 }
 
-long clk_round_rate(struct clk *clk, unsigned long rate)
+long ipu_clk_round_rate(struct ipu_clk *clk, unsigned long rate)
 {
 	if (clk == NULL || !clk->round_rate)
 		return 0;
@@ -150,7 +150,7 @@ long clk_round_rate(struct clk *clk, unsigned long rate)
 	return clk->round_rate(clk, rate);
 }
 
-int clk_set_parent(struct clk *clk, struct clk *parent)
+int ipu_clk_set_parent(struct ipu_clk *clk, struct ipu_clk *parent)
 {
 	clk->parent = parent;
 	if (clk->set_parent)
@@ -158,7 +158,7 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
 	return 0;
 }
 
-static int clk_ipu_enable(struct clk *clk)
+static int ipu_clk_ipu_enable(struct ipu_clk *clk)
 {
 	u32 reg;
 
@@ -180,7 +180,7 @@ static int clk_ipu_enable(struct clk *clk)
 	return 0;
 }
 
-static void clk_ipu_disable(struct clk *clk)
+static void ipu_clk_ipu_disable(struct ipu_clk *clk)
 {
 	u32 reg;
 
@@ -205,7 +205,7 @@ static void clk_ipu_disable(struct clk *clk)
 }
 
 
-static struct clk ipu_clk = {
+static struct ipu_clk ipu_clk = {
 	.name = "ipu_clk",
 #if defined(CONFIG_MX51) || defined(CONFIG_MX53)
 	.enable_reg = (u32 *)(CCM_BASE_ADDR +
@@ -216,8 +216,8 @@ static struct clk ipu_clk = {
 		offsetof(struct mxc_ccm_reg, CCGR3)),
 	.enable_shift = MXC_CCM_CCGR3_IPU1_IPU_DI0_OFFSET,
 #endif
-	.enable = clk_ipu_enable,
-	.disable = clk_ipu_disable,
+	.enable = ipu_clk_ipu_enable,
+	.disable = ipu_clk_ipu_disable,
 	.usecount = 0,
 };
 
@@ -225,18 +225,18 @@ static struct clk ipu_clk = {
 #define CONFIG_SYS_LDB_CLOCK 65000000
 #endif
 
-static struct clk ldb_clk = {
+static struct ipu_clk ldb_clk = {
 	.name = "ldb_clk",
 	.rate = CONFIG_SYS_LDB_CLOCK,
 	.usecount = 0,
 };
 
 /* Globals */
-struct clk *g_ipu_clk;
-struct clk *g_ldb_clk;
+struct ipu_clk *g_ipu_clk;
+struct ipu_clk *g_ldb_clk;
 unsigned char g_ipu_clk_enabled;
-struct clk *g_di_clk[2];
-struct clk *g_pixel_clk[2];
+struct ipu_clk *g_di_clk[2];
+struct ipu_clk *g_pixel_clk[2];
 unsigned char g_dc_di_assignment[10];
 uint32_t g_channel_init_mask;
 uint32_t g_channel_enable_mask;
@@ -284,7 +284,7 @@ static inline void ipu_ch_param_set_buffer(uint32_t ch, int bufNum,
 #define idma_mask(ch)		(idma_is_valid(ch) ? (1UL << (ch & 0x1F)) : 0)
 #define idma_is_set(reg, dma)	(__raw_readl(reg(dma)) & idma_mask(dma))
 
-static void ipu_pixel_clk_recalc(struct clk *clk)
+static void ipu_pixel_clk_recalc(struct ipu_clk *clk)
 {
 	u32 div;
 	u64 final_rate = (unsigned long long)clk->parent->rate * 16;
@@ -300,7 +300,7 @@ static void ipu_pixel_clk_recalc(struct clk *clk)
 	}
 }
 
-static unsigned long ipu_pixel_clk_round_rate(struct clk *clk,
+static unsigned long ipu_pixel_clk_round_rate(struct ipu_clk *clk,
 	unsigned long rate)
 {
 	u64 div, final_rate;
@@ -334,7 +334,7 @@ static unsigned long ipu_pixel_clk_round_rate(struct clk *clk,
 	return final_rate;
 }
 
-static int ipu_pixel_clk_set_rate(struct clk *clk, unsigned long rate)
+static int ipu_pixel_clk_set_rate(struct ipu_clk *clk, unsigned long rate)
 {
 	u64 div, parent_rate;
 	u32 remainder;
@@ -369,7 +369,7 @@ static int ipu_pixel_clk_set_rate(struct clk *clk, unsigned long rate)
 	return 0;
 }
 
-static int ipu_pixel_clk_enable(struct clk *clk)
+static int ipu_pixel_clk_enable(struct ipu_clk *clk)
 {
 	u32 disp_gen = __raw_readl(IPU_DISP_GEN);
 	disp_gen |= clk->id ? DI1_COUNTER_RELEASE : DI0_COUNTER_RELEASE;
@@ -378,7 +378,7 @@ static int ipu_pixel_clk_enable(struct clk *clk)
 	return 0;
 }
 
-static void ipu_pixel_clk_disable(struct clk *clk)
+static void ipu_pixel_clk_disable(struct ipu_clk *clk)
 {
 	u32 disp_gen = __raw_readl(IPU_DISP_GEN);
 	disp_gen &= clk->id ? ~DI1_COUNTER_RELEASE : ~DI0_COUNTER_RELEASE;
@@ -386,7 +386,7 @@ static void ipu_pixel_clk_disable(struct clk *clk)
 
 }
 
-static int ipu_pixel_clk_set_parent(struct clk *clk, struct clk *parent)
+static int ipu_pixel_clk_set_parent(struct ipu_clk *clk, struct ipu_clk *parent)
 {
 	u32 di_gen = __raw_readl(DI_GENERAL(clk->id));
 
@@ -402,7 +402,7 @@ static int ipu_pixel_clk_set_parent(struct clk *clk, struct clk *parent)
 	return 0;
 }
 
-static struct clk pixel_clk[] = {
+static struct ipu_clk pixel_clk[] = {
 	{
 	.name = "pixel_clk",
 	.id = 0,
@@ -493,14 +493,14 @@ int ipu_probe(void)
 #else
 	g_ipu_clk->rate = is_mx6sdl() ? IPUV3_CLK_MX6DL : IPUV3_CLK_MX6Q;
 #endif
-	debug("ipu_clk = %u\n", clk_get_rate(g_ipu_clk));
+	debug("ipu_clk = %u\n", ipu_clk_get_rate(g_ipu_clk));
 	g_ldb_clk = &ldb_clk;
-	debug("ldb_clk = %u\n", clk_get_rate(g_ldb_clk));
+	debug("ldb_clk = %u\n", ipu_clk_get_rate(g_ldb_clk));
 	ipu_reset();
 
-	clk_set_parent(g_pixel_clk[0], g_ipu_clk);
-	clk_set_parent(g_pixel_clk[1], g_ipu_clk);
-	clk_enable(g_ipu_clk);
+	ipu_clk_set_parent(g_pixel_clk[0], g_ipu_clk);
+	ipu_clk_set_parent(g_pixel_clk[1], g_ipu_clk);
+	ipu_clk_enable(g_ipu_clk);
 
 	g_di_clk[0] = NULL;
 	g_di_clk[1] = NULL;
@@ -525,7 +525,7 @@ int ipu_probe(void)
 	/* Set MCU_T to divide MCU access window into 2 */
 	__raw_writel(0x00400000L | (IPU_MCU_T_DEFAULT << 18), IPU_DISP_GEN);
 
-	clk_disable(g_ipu_clk);
+	ipu_clk_disable(g_ipu_clk);
 
 	return 0;
 }
@@ -585,7 +585,7 @@ int32_t ipu_init_channel(ipu_channel_t channel, ipu_channel_params_t *params)
 
 	if (g_ipu_clk_enabled == 0) {
 		g_ipu_clk_enabled = 1;
-		clk_enable(g_ipu_clk);
+		ipu_clk_enable(g_ipu_clk);
 	}
 
 
@@ -743,7 +743,7 @@ void ipu_uninit_channel(ipu_channel_t channel)
 	__raw_writel(ipu_conf, IPU_CONF);
 
 	if (ipu_conf == 0) {
-		clk_disable(g_ipu_clk);
+		ipu_clk_disable(g_ipu_clk);
 		g_ipu_clk_enabled = 0;
 	}
 

@@ -798,3 +798,8 @@ int spi_nor_scan(struct spi_nor *nor)
 
 	return 0;
 }
+
+int spi_flash_cmd_reset(struct spi_nor *nor)
+{
+	return -ENOTSUPP;
+}
