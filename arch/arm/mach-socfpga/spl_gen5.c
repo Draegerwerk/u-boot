@@ -32,7 +32,7 @@ DECLARE_GLOBAL_DATA_PTR;
 u32 spl_boot_device(void)
 {
 	const u32 bsel = readl(socfpga_get_sysmgr_addr() +
-			       SYSMGR_GEN5_BOOTINFO);
+				   SYSMGR_GEN5_BOOTINFO);
 
 	switch (SYSMGR_GET_BOOTINFO_BSEL(bsel)) {
 	case 0x1:	/* FPGA (HPS2FPGA Bridge) */
@@ -131,6 +131,10 @@ void board_init_f(ulong dummy)
 	debug("Unfreezing/Thaw all I/O banks\n");
 	/* unfreeze / thaw all IO banks */
 	sys_mgr_frzctrl_thaw_req();
+
+#ifdef CONFIG_TARGET_SOCFPGA_CYCLONE5_M48
+	board_early_init_f();
+#endif
 
 #ifdef CONFIG_DEBUG_UART
 	socfpga_per_reset(SOCFPGA_RESET(UART0), 0);

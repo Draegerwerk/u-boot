@@ -49,6 +49,8 @@ static int spi_load_image_os(struct spl_image_info *spl_image,
 		       CONFIG_SYS_SPI_ARGS_SIZE,
 		       (void *)CONFIG_SYS_SPL_ARGS_ADDR);
 
+	spi_flash_reset(flash);
+
 	return 0;
 }
 #endif
@@ -60,6 +62,7 @@ static ulong spl_spi_fit_read(struct spl_load_info *load, ulong sector,
 	ulong ret;
 
 	ret = spi_flash_read(flash, sector, count, buf);
+	spi_flash_reset(flash);
 	if (!ret)
 		return count;
 	else
@@ -118,6 +121,7 @@ static int spl_spi_load_image(struct spl_image_info *spl_image,
 		if (err) {
 			debug("%s: Failed to read from SPI flash (err=%d)\n",
 			      __func__, err);
+			spi_flash_reset(flash);
 			return err;
 		}
 
@@ -126,8 +130,10 @@ static int spl_spi_load_image(struct spl_image_info *spl_image,
 			err = spi_flash_read(flash, payload_offs,
 					     roundup(fdt_totalsize(header), 4),
 					     (void *)CONFIG_SYS_LOAD_ADDR);
-			if (err)
+			if (err) {
+				spi_flash_reset(flash);
 				return err;
+			}
 			err = spl_parse_image_header(spl_image, bootdev,
 					(struct image_header *)CONFIG_SYS_LOAD_ADDR);
 		} else if (IS_ENABLED(CONFIG_SPL_LOAD_FIT) &&
@@ -163,6 +169,7 @@ static int spl_spi_load_image(struct spl_image_info *spl_image,
 					     (void *)spl_image->load_addr);
 		}
 	}
+	spi_flash_reset(flash);
 
 	return err;
 }

@@ -9,7 +9,6 @@
  *
  * (C) Copyright 2004-2010 Freescale Semiconductor, Inc.
  */
-
 #include <common.h>
 #include <log.h>
 #include <part.h>
@@ -30,6 +29,9 @@
 #include <panel.h>
 
 #include <dm.h>
+#include <dm/of.h>
+#include <dm/of_access.h>
+#include <dm/uclass-internal.h>
 #include <video.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -37,7 +39,7 @@ DECLARE_GLOBAL_DATA_PTR;
 static int mxcfb_map_video_memory(struct fb_info *fbi);
 static int mxcfb_unmap_video_memory(struct fb_info *fbi);
 
-static struct fb_videomode const *gmode;
+static struct fb_videomode const *gmode = NULL;
 static uint8_t gdisp;
 static uint32_t gpixfmt;
 
@@ -94,6 +96,8 @@ static unsigned long default_bpp = 16;
 static unsigned char g_dp_in_use;
 static struct fb_info *mxcfb_info[3];
 static int ext_clk_used;
+
+__weak void initialize_without_display(void) {}
 
 static uint32_t bpp_to_pixfmt(struct fb_info *fbi)
 {
@@ -470,7 +474,7 @@ static struct fb_info *mxcfb_init_fbinfo(void)
 	return fbi;
 }
 
-extern struct clk *g_ipu_clk;
+extern struct ipu_clk *g_ipu_clk;
 
 /*
  * Probe routine for the framebuffer driver. It is called during the
@@ -507,7 +511,7 @@ static int mxcfb_probe(struct udevice *dev, u32 interface_pix_fmt,
 	mxcfbi->udev = dev;
 
 	if (!ipu_clk_enabled())
-		clk_enable(g_ipu_clk);
+		ipu_clk_enable(g_ipu_clk);
 
 	ipu_disp_set_global_alpha(mxcfbi->ipu_ch, 1, 0x80);
 	ipu_disp_set_color_key(mxcfbi->ipu_ch, 0, 0);
@@ -583,39 +587,81 @@ enum {
 	LCD_MAX_LOG2_BPP	= VIDEO_BPP16,
 };
 
+#if defined(CONFIG_DISPLAY)
+static int enable_displays(struct udevice *dev)
+{
+	struct udevice *disp_dev;
+	int num_displays = 0;
+
+	uclass_first_device(UCLASS_DISPLAY, &disp_dev);
+	if (disp_dev == NULL) {
+		return -ENODEV;
+	}
+
+	while (disp_dev) {
+		if (! display_enable(disp_dev, 16, NULL)) {
+			num_displays++;
+		}
+		uclass_next_device(&disp_dev);
+	}
+
+	return num_displays;
+}
+#endif
+
 static int ipuv3_video_probe(struct udevice *dev)
 {
 	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
 	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
-#if defined(CONFIG_DISPLAY)
-	struct udevice *disp_dev;
-#endif
+
 	u32 fb_start, fb_end;
-	int ret;
+	int ret = 0;
 
 	debug("%s() plat: base 0x%lx, size 0x%x\n",
 	      __func__, plat->base, plat->size);
+
+#if defined(CONFIG_DISPLAY)
+	ret = enable_displays(dev);
+	if ( ret <= 0) {
+		debug("%s() no display found\n", __func__);
+		initialize_without_display();
+		if (ret < 0 || NULL == gmode)
+		return -ENODEV;
+	} else
+#endif
+
+		if (ret == 0)
+
+#if defined(CONFIG_IMX_VIDEO_SKIP)
+		{
+			ret = ipu_displays_init();
+			if (ret < 0)
+				return ret;
+		}
+#else
+		return -ENODEV;
+#endif
 
 	ret = ipu_probe();
 	if (ret)
 		return ret;
 
-	ret = ipu_displays_init();
-	if (ret < 0)
-		return ret;
-
 	ret = mxcfb_probe(dev, gpixfmt, gdisp, gmode);
 	if (ret < 0)
 		return ret;
-
+/*
+This does not work with M48 dual display - already done before in enable_displays()
 #if defined(CONFIG_DISPLAY)
-	ret = uclass_first_device(UCLASS_DISPLAY, &disp_dev);
-	if (disp_dev) {
+	uclass_first_device(UCLASS_DISPLAY, &disp_dev);
+	if (disp_dev != NULL)
 		ret = display_enable(disp_dev, 16, NULL);
-		if (ret < 0)
-			return ret;
-	}
+	else
+		ret = -1;
+
+	if (ret < 0)
+		return ret;
 #endif
+*/
 	if (CONFIG_IS_ENABLED(PANEL)) {
 		struct udevice *panel_dev;
 

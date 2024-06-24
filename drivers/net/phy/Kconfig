@@ -49,6 +49,12 @@ config B53_PHY_PORTS
 
 endif # B53_SWITCH
 
+config BCM53134P_SWITCH
+	bool "Broadcom BCM53134P Ethernet switch support."
+	depends on DM_SPI
+	help
+	  Enable support for Broadcom BCM53134P Ethernet switch.
+
 config MV88E61XX_SWITCH
 	bool "Marvell MV88E61xx Ethernet switch PHY support."
 

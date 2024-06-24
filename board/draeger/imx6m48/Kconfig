@@ -1,0 +1,23 @@
+
+
+if TARGET_IMX6M48
+
+config SYS_BOARD
+	default "imx6m48"
+
+config SYS_VENDOR
+	default "draeger"
+
+config SYS_CONFIG_NAME
+	default "draeger_imx6m48"
+
+config IMX_CONFIG
+	default "board/draeger/imx6m48/imx6m48spl.cfg"
+
+config HAB_REVOCATION_TEST_IMAGE
+	bool "Draeger M48 Revokation kernel"
+
+source "board/draeger/imx6m48/hwdiag/Kconfig"
+
+endif
+

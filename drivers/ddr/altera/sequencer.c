@@ -56,6 +56,16 @@ static const struct socfpga_sdr_ctrl *sdr_ctrl =
 #define SKIP_DELAY_LOOP_VALUE_OR_ZERO(non_skip_value) \
 	((non_skip_value) & seq->skip_delay_mask)
 
+__weak unsigned int getPhyCfgPresetValue(void)
+{
+	return 0xffffffff;
+}
+
+__weak void storePhyCfgPresetValue(unsigned int preset)
+{
+	return;
+}
+
 bool dram_is_ddr(const u8 ddr)
 {
 	const struct socfpga_sdram_config *cfg = socfpga_get_sdram_config();
@@ -2561,7 +2571,7 @@ static int rw_mgr_mem_calibrate_vfifo_center(struct socfpga_sdrseq *seq,
 	int i, min_index;
 	int ret;
 
-	debug("%s:%d: %u %u", __func__, __LINE__, rw_group, test_bgn);
+	debug("%s:%d: %u %u\n", __func__, __LINE__, rw_group, test_bgn);
 
 	start_dqs = readl(addr);
 	if (seq->iocfg->shift_dqs_en_when_shift_dqs)
@@ -3732,6 +3742,9 @@ static void debug_mem_calibrate(struct socfpga_sdrseq *seq, int pass)
 
 		writel(debug_info, &phy_mgr_cfg->cal_debug_info);
 		writel(PHY_MGR_CAL_SUCCESS, &phy_mgr_cfg->cal_status);
+
+		storePhyCfgPresetValue(readl(&sdr_ctrl->phy_ctrl0));
+
 	} else {
 		debug(KBUILD_BASENAME ": CALIBRATION FAILED\n");
 

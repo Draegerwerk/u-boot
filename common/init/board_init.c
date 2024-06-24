@@ -79,7 +79,9 @@ ulong board_init_f_alloc_reserve(ulong top)
 {
 	/* Reserve early malloc arena */
 #if CONFIG_VAL(SYS_MALLOC_F_LEN)
+#ifndef CONFIG_MALLOC_F_ADDR
 	top -= CONFIG_VAL(SYS_MALLOC_F_LEN);
+#endif
 #endif
 	/* LAST : reserve GD (rounded up to a multiple of 16 bytes) */
 	top = rounddown(top-sizeof(struct global_data), 16);

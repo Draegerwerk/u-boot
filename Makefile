@@ -1538,7 +1538,7 @@ OBJCOPYFLAGS_u-boot-with-tpl.bin = -I binary -O binary \
 tpl/u-boot-with-tpl.bin: tpl/u-boot-tpl.bin u-boot.bin FORCE
 	$(call if_changed,pad_cat)
 
-SPL: spl/u-boot-spl.bin FORCE
+SPL.bin: spl/u-boot-spl.bin FORCE
 	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
 
 ifeq ($(CONFIG_ARCH_IMX8M)$(CONFIG_ARCH_IMX8), y)

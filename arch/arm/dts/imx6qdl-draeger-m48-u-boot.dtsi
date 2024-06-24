@@ -1,0 +1,70 @@
+/*
+ *  (C) Copyright 2020 Draeger and Licensors, info@draeger.com
+ *
+ *  SPDX-License-Identifier: GPL-2.0+
+ *  Device Tree file for Drager M48 Board
+ */
+
+#include "imx6qdl-u-boot.dtsi"
+
+&clks  {
+	u-boot,dm-pre-reloc;
+};
+
+&usdhc3 {
+	u-boot,dm-pre-reloc;
+};
+
+&pinctrl_m48_usdhc3 {
+	u-boot,dm-pre-reloc;
+};
+
+&i2c2 {
+	u-boot,dm-pre-reloc;
+};
+
+&pinctrl_m48_i2c2 {
+	u-boot,dm-pre-reloc;
+};
+
+&pinctrl_m48_i2c2_gpio {
+	u-boot,dm-pre-reloc;
+};
+
+&gpio4 {
+	u-boot,dm-pre-reloc;
+};
+
+&intc {
+	u-boot,dm-pre-reloc;
+};
+
+&L2 {
+	u-boot,dm-pre-reloc;
+};
+
+&gpt {
+	u-boot,dm-pre-reloc;
+};
+
+&src {
+	u-boot,dm-pre-reloc;
+};
+
+/ {
+	clocks {
+		u-boot,dm-pre-reloc;
+		ckil {
+			u-boot,dm-pre-reloc;
+		};
+
+		ckih1 {
+			u-boot,dm-pre-reloc;
+		};
+
+		osc {
+			u-boot,dm-pre-reloc;
+		};
+	};
+};
+	

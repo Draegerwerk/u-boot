@@ -196,11 +196,11 @@ endif
 endif
 
 else
-MKIMAGEFLAGS_SPL = -n $(filter-out $(PLUGIN).bin $< $(PHONY),$^) \
+MKIMAGEFLAGS_SPL.bin = -n $(filter-out $(PLUGIN).bin $< $(PHONY),$^) \
 		   -T $(IMAGE_TYPE) -e $(CONFIG_SPL_TEXT_BASE)
-SPL: MKIMAGEOUTPUT = SPL.log
+SPL.bin: MKIMAGEOUTPUT = SPL.log
 
-SPL: spl/u-boot-spl.bin spl/u-boot-spl.cfgout $(PLUGIN).bin FORCE
+SPL.bin: spl/u-boot-spl.bin spl/u-boot-spl.cfgout $(PLUGIN).bin FORCE
 	$(call if_changed,mkimage)
 
 MKIMAGEFLAGS_u-boot.uim = -A arm -O U-Boot -a $(CONFIG_SYS_TEXT_BASE) \
@@ -229,7 +229,7 @@ spl/u-boot-nand-spl.imx: SPL FORCE
 	$(call if_changed,u-boot-nand-spl_imx)
 endif
 
-targets += $(addprefix ../../../,SPL spl/u-boot-spl.cfgout u-boot-dtb.cfgout u-boot.cfgout u-boot.uim spl/u-boot-nand-spl.imx)
+targets += $(addprefix ../../../,SPL.bin spl/u-boot-spl.cfgout u-boot-dtb.cfgout u-boot.cfgout u-boot.uim spl/u-boot-nand-spl.imx)
 
 obj-$(CONFIG_ARM64) += lowlevel.o
 

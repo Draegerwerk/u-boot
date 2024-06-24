@@ -130,6 +130,13 @@ static int spi_flash_std_erase(struct udevice *dev, u32 offset, size_t len)
 	return mtd->_erase(mtd, &instr);
 }
 
+static int spi_flash_std_reset(struct udevice *dev)
+{
+	struct spi_flash *flash = dev_get_uclass_priv(dev);
+
+	return spi_flash_cmd_reset(flash);
+}
+
 static int spi_flash_std_get_sw_write_prot(struct udevice *dev)
 {
 	struct spi_flash *flash = dev_get_uclass_priv(dev);
@@ -167,6 +174,7 @@ static const struct dm_spi_flash_ops spi_flash_std_ops = {
 	.read = spi_flash_std_read,
 	.write = spi_flash_std_write,
 	.erase = spi_flash_std_erase,
+	.reset = spi_flash_std_reset,
 	.get_sw_write_prot = spi_flash_std_get_sw_write_prot,
 };
 

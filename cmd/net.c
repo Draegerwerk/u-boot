@@ -12,6 +12,7 @@
 #include <command.h>
 #include <dm.h>
 #include <env.h>
+#include <env_flags.h>
 #include <image.h>
 #include <net.h>
 #include <net/udp.h>
@@ -127,6 +128,7 @@ U_BOOT_CMD(
 static void netboot_update_env(void)
 {
 	char tmp[22];
+	struct env_entry entry;
 
 	if (net_gateway.s_addr) {
 		ip_to_string(net_gateway, tmp);
@@ -134,8 +136,16 @@ static void netboot_update_env(void)
 	}
 
 	if (net_netmask.s_addr) {
-		ip_to_string(net_netmask, tmp);
-		env_set("netmask", tmp);
+
+		entry.key = "netmask";
+		env_flags_init(&entry);
+
+		if (entry.flags & env_flags_vartype_hex)
+			env_set_hex(entry.key, ntohl(net_netmask.s_addr));
+		else {
+			ip_to_string(net_netmask, tmp);
+			env_set(entry.key, tmp);
+		}
 	}
 
 #ifdef CONFIG_CMD_BOOTP

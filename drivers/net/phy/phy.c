@@ -245,6 +245,7 @@ int genphy_update_link(struct phy_device *phydev)
 
 		printf("%s Waiting for PHY auto negotiation to complete",
 		       phydev->dev->name);
+
 		while (!(mii_reg & BMSR_ANEGCOMPLETE)) {
 			/*
 			 * Timeout reached ?
@@ -264,8 +265,8 @@ int genphy_update_link(struct phy_device *phydev)
 			if ((i++ % 10) == 0)
 				printf(".");
 
-			mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
 			mdelay(50);	/* 50 ms */
+			mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
 		}
 		printf(" done\n");
 		phydev->link = 1;

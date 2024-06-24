@@ -88,6 +88,12 @@ static int clk_pllv3_generic_enable(struct clk *clk)
 	else
 		val &= ~pll->power_bit;
 
+	writel(val, pll->base);
+
+	/* Wait for PLL to lock */
+	while (!(readl(pll->base) & BM_PLL_LOCK))
+		;
+
 	val |= pll->enable_bit;
 
 	writel(val, pll->base);

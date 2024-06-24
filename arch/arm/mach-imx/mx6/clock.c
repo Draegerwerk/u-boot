@@ -1317,8 +1317,12 @@ int do_mx6_showclocks(struct cmd_tbl *cmdtp, int flag, int argc,
 	printf("PLL_BUS    %8d MHz\n", freq / 1000000);
 	freq = decode_pll(PLL_USBOTG, MXC_HCLK);
 	printf("PLL_OTG    %8d MHz\n", freq / 1000000);
-	freq = decode_pll(PLL_ENET, MXC_HCLK);
-	printf("PLL_NET    %8d MHz\n", freq / 1000000);
+    freq = decode_pll(PLL_ENET, MXC_HCLK);
+    printf("PLL_NET    %8d MHz\n", freq / 1000000);
+    freq = decode_pll(PLL_AUDIO, MXC_HCLK);
+    printf("PLL_AUDIO  %8d MHz\n", freq / 1000000);
+    freq = decode_pll(PLL_VIDEO, MXC_HCLK);
+    printf("PLL_VIDEO  %8d MHz\n", freq / 1000000);
 
 	printf("\n");
 	printf("ARM        %8d kHz\n", mxc_get_clock(MXC_ARM_CLK) / 1000);

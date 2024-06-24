@@ -474,12 +474,11 @@ int arch_memory_test_prepare(u32 *vstart, u32 *size, phys_addr_t *phys_offset)
 	struct bd_info *bd = gd->bd;
 
 	*vstart = CONFIG_SYS_SDRAM_BASE;
-	*size = (gd->ram_size >= 256 << 20 ?
-			256 << 20 : gd->ram_size) - (1 << 20);
+	*size = (gd->ram_size) - (1 << 20);
 
 	/* Limit area to be tested with the board info struct */
 	if ((*vstart) + (*size) > (ulong)bd)
-		*size = (ulong)bd - *vstart;
+		*size = (ulong)bd - *vstart - (1 << 20);
 
 	return 0;
 }

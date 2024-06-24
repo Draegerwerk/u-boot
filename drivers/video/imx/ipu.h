@@ -19,13 +19,13 @@
 #define IDMA_CHAN_INVALID	0xFF
 #define HIGH_RESOLUTION_WIDTH	1024
 
-struct clk {
+struct ipu_clk {
 	const char *name;
 	int id;
 	/* Source clock this clk depends on */
-	struct clk *parent;
+	struct ipu_clk *parent;
 	/* Secondary clock to enable/disable with this clock */
-	struct clk *secondary;
+	struct ipu_clk *secondary;
 	/* Current clock rate */
 	unsigned long rate;
 	/* Reference count of clock enable/disable */
@@ -39,30 +39,30 @@ struct clk {
 	 * Function ptr to recalculate the clock's rate based on parent
 	 * clock's rate
 	 */
-	void (*recalc) (struct clk *);
+	void (*recalc) (struct ipu_clk *);
 	/*
 	 * Function ptr to set the clock to a new rate. The rate must match a
 	 * supported rate returned from round_rate. Leave blank if clock is not
 	* programmable
 	 */
-	int (*set_rate) (struct clk *, unsigned long);
+	int (*set_rate) (struct ipu_clk *, unsigned long);
 	/*
 	 * Function ptr to round the requested clock rate to the nearest
 	 * supported rate that is less than or equal to the requested rate.
 	 */
-	unsigned long (*round_rate) (struct clk *, unsigned long);
+	unsigned long (*round_rate) (struct ipu_clk *, unsigned long);
 	/*
 	 * Function ptr to enable the clock. Leave blank if clock can not
 	 * be gated.
 	 */
-	int (*enable) (struct clk *);
+	int (*enable) (struct ipu_clk *);
 	/*
 	 * Function ptr to disable the clock. Leave blank if clock can not
 	 * be gated.
 	 */
-	void (*disable) (struct clk *);
+	void (*disable) (struct ipu_clk *);
 	/* Function ptr to set the parent clock of the clock. */
-	int (*set_parent) (struct clk *, struct clk *);
+	int (*set_parent) (struct ipu_clk *, struct ipu_clk *);
 };
 
 /*
@@ -241,14 +241,14 @@ int32_t ipu_disp_set_color_key(ipu_channel_t channel, unsigned char enable,
 
 uint32_t bytes_per_pixel(uint32_t fmt);
 
-void clk_enable(struct clk *clk);
-void clk_disable(struct clk *clk);
-u32 clk_get_rate(struct clk *clk);
-int clk_set_rate(struct clk *clk, unsigned long rate);
-long clk_round_rate(struct clk *clk, unsigned long rate);
-int clk_set_parent(struct clk *clk, struct clk *parent);
-int clk_get_usecount(struct clk *clk);
-struct clk *clk_get_parent(struct clk *clk);
+void ipu_clk_enable(struct ipu_clk *clk);
+void ipu_clk_disable(struct ipu_clk *clk);
+u32 ipu_clk_get_rate(struct ipu_clk *clk);
+int ipu_clk_set_rate(struct ipu_clk *clk, unsigned long rate);
+long ipu_clk_round_rate(struct ipu_clk *clk, unsigned long rate);
+int ipu_clk_set_parent(struct ipu_clk *clk, struct ipu_clk *parent);
+int ipu_clk_get_usecount(struct ipu_clk *clk);
+struct ipu_clk *ipu_clk_get_parent(struct ipu_clk *clk);
 
 void ipu_dump_registers(void);
 int ipu_probe(void);

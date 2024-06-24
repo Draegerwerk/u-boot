@@ -590,7 +590,7 @@ static int altera_gen5_sdram_probe(struct udevice *dev)
 	}
 	reset_deassert_bulk(&resets);
 
-	if (sdram_mmr_init_full(sdr_ctrl, 0xffffffff) != 0) {
+	if (sdram_mmr_init_full(sdr_ctrl, getPhyCfgPresetValue()) != 0) {
 		puts("SDRAM init failed.\n");
 		goto failed;
 	}

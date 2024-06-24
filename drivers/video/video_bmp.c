@@ -339,6 +339,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 			fb -= byte_width + priv->line_length;
 		}
 		break;
+#if defined(CONFIG_BMP_16BPP)
 	case 16:
 		if (IS_ENABLED(CONFIG_BMP_16BPP)) {
 			for (i = 0; i < height; ++i) {
@@ -352,16 +353,27 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 			}
 		}
 		break;
+#endif /* CONFIG_BMP_16BPP */
+#if defined(CONFIG_BMP_24BPP)
 	case 24:
 		if (IS_ENABLED(CONFIG_BMP_24BPP)) {
 			for (i = 0; i < height; ++i) {
 				for (j = 0; j < width; j++) {
 					if (bpix == 16) {
+#if defined(CONFIG_FB_16BPP_555RGB)
 						/* 16bit 565RGB format */
 						*(u16 *)fb = ((bmap[2] >> 3)
 							<< 11) |
 							((bmap[1] >> 2) << 5) |
 							(bmap[0] >> 3);
+#elif defined(CONFIG_FB_16BPP_565RGB)
+					/* 16bit 565RGB format */
+					*(u16 *)fb = ((bmap[2] >> 3) << 11) |
+						((bmap[1] >> 2) << 5) |
+						(bmap[0] >> 3);
+#else
+#error Define either CONFIG_FB_16BPP_555RGB or CONFIG_FB_16BPP_565RGB
+#endif
 						bmap += 3;
 						fb += 2;
 					} else if (eformat == VIDEO_X2R10G10B10) {
@@ -412,6 +424,7 @@ int video_bmp_display(struct udevice *dev, ulong bmp_image, int x, int y,
 			}
 		}
 		break;
+#endif /* CONFIG_BMP_32BPP */
 	default:
 		break;
 	};

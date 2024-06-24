@@ -413,6 +413,13 @@ int spl_parse_image_header(struct spl_image_info *spl_image,
 #endif
 	}
 
+	if ( (image_get_load(header) != CONFIG_SYS_TEXT_BASE)
+			|| (image_get_data_size(header) > CONFIG_SYS_MONITOR_LEN)
+	) {
+		puts("unexpected U-Boot image header\n");
+		return -EINVAL;
+	}
+
 	return 0;
 }
 

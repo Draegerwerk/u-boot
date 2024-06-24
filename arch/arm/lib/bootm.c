@@ -101,6 +101,10 @@ static void setup_memory_tags(struct bd_info *bd)
 	int i;
 
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
+		if (bd->bi_dram[i].size == 0) {
+			break;
+		}
+
 		params->hdr.tag = ATAG_MEM;
 		params->hdr.size = tag_size (tag_mem32);
 

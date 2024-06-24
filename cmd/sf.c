@@ -131,6 +131,7 @@ static int do_spi_flash_probe(int argc, char *const argv[])
 	/* Remove the old device, otherwise probe will just be a nop */
 	ret = spi_find_bus_and_cs(bus, cs, &bus_dev, &new);
 	if (!ret) {
+		spi_flash_reset_dm(new);
 		device_remove(new, DM_REMOVE_NORMAL);
 	}
 	flash = NULL;
@@ -148,6 +149,7 @@ static int do_spi_flash_probe(int argc, char *const argv[])
 	}
 #else
 	if (flash)
+		spi_flash_reset(flash);
 		spi_flash_free(flash);
 
 	new = spi_flash_probe(bus, cs, speed, mode);
@@ -391,6 +393,16 @@ static int do_spi_protect(int argc, char *const argv[])
 	return ret == 0 ? 0 : 1;
 }
 
+static int do_spi_flash_reset(int argc, char * const argv[])
+{
+	int ret = 0;
+
+	ret = spi_flash_reset(flash);
+
+	return ret == 0 ? 0 : 1;
+}
+
+
 enum {
 	STAGE_ERASE,
 	STAGE_CHECK,
@@ -587,6 +599,8 @@ static int do_spi_flash(struct cmd_tbl *cmdtp, int flag, int argc,
 		ret = do_spi_flash_erase(argc, argv);
 	else if (strcmp(cmd, "protect") == 0)
 		ret = do_spi_protect(argc, argv);
+	else if (strcmp(cmd, "reset") == 0)
+		ret = do_spi_flash_reset(argc, argv);
 	else if (IS_ENABLED(CONFIG_CMD_SF_TEST) && !strcmp(cmd, "test"))
 		ret = do_spi_flash_test(argc, argv);
 	else

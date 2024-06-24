@@ -234,8 +234,11 @@ static int on_netmask(const char *name, const char *value, enum env_op op,
 	if (flags & H_PROGRAMMATIC)
 		return 0;
 
-	net_netmask = string_to_ip(value);
-
+	if (strchr(value,'.') != NULL) {
+		net_netmask = string_to_ip(value);
+	} else {
+		net_netmask.s_addr = htonl(simple_strtoul(value, NULL, 16));
+	}
 	return 0;
 }
 U_BOOT_ENV_CALLBACK(netmask, on_netmask);

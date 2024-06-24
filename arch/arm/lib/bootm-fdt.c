@@ -42,6 +42,9 @@ int arch_fixup_fdt(void *blob)
 	u64 size[CONFIG_NR_DRAM_BANKS];
 
 	for (bank = 0; bank < CONFIG_NR_DRAM_BANKS; bank++) {
+		if (bd->bi_dram[bank].size == 0) {
+			break;
+		}
 		start[bank] = bd->bi_dram[bank].start;
 		size[bank] = bd->bi_dram[bank].size;
 #ifdef CONFIG_ARMV7_NONSEC
@@ -52,7 +55,7 @@ int arch_fixup_fdt(void *blob)
 	}
 
 #ifdef CONFIG_OF_LIBFDT
-	ret = fdt_fixup_memory_banks(blob, start, size, CONFIG_NR_DRAM_BANKS);
+	ret = fdt_fixup_memory_banks(blob, start, size, bank);
 	if (ret)
 		return ret;
 #endif

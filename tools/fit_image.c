@@ -24,6 +24,103 @@
 
 static image_header_t header;
 
+/*
+ * Simulate the functions mmap and munmap because these functions will fail
+ * when used from a Docker image at Windows.
+ *
+ * The simulation has the following limitations:
+ *
+ * - Only one "open" mmap at the time, in other word mmap can not be 
+ *   called a second time when the first mmap is not "closed" by a munmap.
+ * - An mapped file will only be updated at the moment that munmap is 
+ *   called
+ * - The parameter "addr" must be 0 and the parameter flags must be MAP_SHARED
+ */
+static void  *map_ptr = MAP_FAILED;
+static int    map_prot = 0;
+static int    map_fd = 0;
+static off_t  map_off = 0;
+static size_t map_len = 0;
+
+void *sim_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off)
+{
+	off_t save_pos;
+
+	if (addr != 0 && flags != MAP_SHARED)
+	{
+		return MAP_FAILED;
+	}
+
+	if (map_ptr != MAP_FAILED)
+	{
+		return MAP_FAILED;
+	}
+
+	map_ptr = malloc(len);
+
+	/* Save current file position */
+	save_pos = lseek(fd, 0, SEEK_CUR);
+
+	/* Set file position to the to be mapped offset */
+	lseek(fd, off, SEEK_SET);
+
+	/* Copy the to mapped region */
+	if (read(fd, map_ptr, len) < 0)
+	{
+		free(map_ptr);
+		map_ptr = MAP_FAILED;
+
+		fprintf(stderr, "sim_mmap: Can't read\n");
+	}
+
+	/* Restore current file position */
+	lseek(fd, save_pos, SEEK_SET);
+
+	map_len = len;
+	map_prot = prot;
+	map_fd = prot;
+	map_off = off;
+
+	return map_ptr;
+}
+
+int sim_munmap(void *addr, size_t len)
+{
+	off_t save_pos;
+
+	if (addr != 0 && len != map_len)
+	{
+		return -1;
+	}
+
+	if (map_prot & PROT_WRITE)
+	{
+		/* Save current file position */
+		save_pos = lseek(map_fd, 0, SEEK_CUR);
+
+		/* Set file position to the to be mapped offset */
+		lseek(map_fd, map_off, SEEK_SET);
+
+		/* Copy the to mapped region */
+		if (write(map_fd, map_ptr, map_len) < 0)
+		{
+			fprintf(stderr, "sim_munmap: Can't write\n");
+		}
+
+		/* Restore current file position */
+		lseek(map_fd, save_pos, SEEK_SET);
+	}
+
+	free(map_ptr);
+
+	map_ptr = MAP_FAILED;
+	map_prot = 0;
+	map_off = 0;
+	map_len = 0;
+
+	return 0;
+}
+
 static int fit_add_file_data(struct image_tool_params *params, size_t size_inc,
 			     const char *tmpfile)
 {
@@ -571,7 +668,7 @@ static int fit_import_data(struct image_tool_params *params, const char *fname)
 	int images;
 	int node;
 
-	fd = mmap_fdt(params->cmdname, fname, 0, &old_fdt, &sbuf, false, false);
+	fd = mmap_fdt(params->cmdname, fname, 0, &old_fdt, &sbuf, false, true);
 	if (fd < 0)
 		return -EIO;
 	fit_size = fdt_totalsize(old_fdt);

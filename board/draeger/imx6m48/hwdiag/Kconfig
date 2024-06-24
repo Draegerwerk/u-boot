@@ -1,0 +1,2 @@
+config HW_DIAG
+	def_bool $(success,/usr/bin/test "$(BUILD_HW_DIAG)" == y)

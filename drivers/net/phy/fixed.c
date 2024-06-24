@@ -72,18 +72,42 @@ static int fixedphy_config(struct phy_device *phydev)
 		priv->asym_pause = old_val[4];
 	}
 
+	/* Get the optional phandle id of the device is connected to the */
+	/* fixed links that needs to be probed.                          */
+	priv->device_phandle_id = ofnode_read_s32_default(node, "fixed-device-handle", -1);
+	priv->devp = NULL;
+
 	return 0;
 }
 
 static int fixedphy_startup(struct phy_device *phydev)
 {
 	struct fixed_link *priv = phydev->priv;
+	int ret;
 
 	phydev->asym_pause = priv->asym_pause;
 	phydev->pause = priv->pause;
 	phydev->duplex = priv->duplex;
 	phydev->speed = priv->link_speed;
 	phydev->link = 1;
+
+	if (priv->device_phandle_id >= 0)
+	{
+		if (priv->devp == NULL)
+		{
+			/* Get and implictly probe the device connected to fixed link */
+			ret = uclass_get_device_by_phandle_id(UCLASS_MISC,
+			                                      priv->device_phandle_id,
+			                                      &priv->devp);
+
+			if (ret)
+			{
+				priv->devp = NULL;
+
+				return 0;
+			}
+		}
+	}
 
 	return 0;
 }

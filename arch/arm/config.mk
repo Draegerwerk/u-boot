@@ -163,7 +163,7 @@ ifdef CONFIG_MACH_IMX
 ifneq ($(CONFIG_IMX_CONFIG),"")
 ifdef CONFIG_SPL
 ifndef CONFIG_SPL_BUILD
-INPUTS-y += SPL
+INPUTS-y += SPL.bin
 endif
 else
 ifeq ($(CONFIG_OF_SEPARATE),y)

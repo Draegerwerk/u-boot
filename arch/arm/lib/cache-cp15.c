@@ -122,6 +122,10 @@ static inline void mmu_setup(void)
 		set_section_dcache(i, DCACHE_OFF);
 
 	for (i = 0; i < CONFIG_NR_DRAM_BANKS; i++) {
+		if (gd->bd->bi_dram[i].size == 0) {
+			break;
+		}
+
 		dram_bank_mmu_setup(i);
 	}
 

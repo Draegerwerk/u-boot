@@ -13,7 +13,6 @@
  *  Copyright (C) 2008 Darius Augulis <darius.augulis at teltonika.lt>
  *
  */
-
 #include <common.h>
 #include <log.h>
 #include <asm/arch/clock.h>
@@ -752,6 +751,11 @@ void bus_i2c_init(int index, int speed, int unused,
 		}
 	}
 
+	if (mxc_i2c_buses[index].init_done) {
+		debug("bus_i2c_init init done\n");
+		return;
+	}
+
 	/*
 	 * Warning: Be careful to allow the assignment to a static
 	 * variable here. This function could be called while U-Boot is
@@ -770,6 +774,8 @@ void bus_i2c_init(int index, int speed, int unused,
 	}
 
 	bus_i2c_set_bus_speed(&mxc_i2c_buses[index], speed);
+
+	mxc_i2c_buses[index].init_done = 1;
 }
 
 /*

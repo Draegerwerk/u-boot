@@ -48,4 +48,10 @@ static inline ulong map_to_sysmem(void *ptr)
 #define MKIMAGE_DEFAULT_DTC_OPTIONS	"-I dts -O dtb -p 500"
 #define MKIMAGE_MAX_DTC_CMDLINE_LEN	2 * MKIMAGE_MAX_TMPFILE_LEN + 35
 
+#define mmap sim_mmap
+#define munmap sim_munmap
+
+void *sim_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off);
+int sim_munmap(void *addr, size_t len);
+
 #endif /* _MKIIMAGE_H_ */

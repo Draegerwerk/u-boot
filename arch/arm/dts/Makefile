@@ -433,7 +433,8 @@ dtb-$(CONFIG_ARCH_SOCFPGA) +=				\
 	socfpga_cyclone5_sr1500.dtb			\
 	socfpga_cyclone5_vining_fpga.dtb		\
 	socfpga_n5x_socdk.dtb				\
-	socfpga_stratix10_socdk.dtb
+	socfpga_stratix10_socdk.dtb			\
+	socfpga_cyclone5_draeger_m48.dtb
 
 dtb-$(CONFIG_TARGET_DRA7XX_EVM) += dra72-evm.dtb dra7-evm.dtb	\
 	dra72-evm-revc.dtb dra71-evm.dtb dra76-evm.dtb
@@ -759,6 +760,7 @@ dtb-y += \
 	imx6dl-cubox-i-emmc-som-v15.dtb \
 	imx6dl-cubox-i-som-v15.dtb \
 	imx6dl-dhcom-pdk2.dtb \
+	imx6dl-draeger-m48.dtb \
 	imx6dl-dhcom-picoitx.dts \
 	imx6dl-gw51xx.dtb \
 	imx6dl-gw52xx.dtb \
@@ -807,6 +809,9 @@ dtb-y += \
 	imx6q-cubox-i-som-v15.dtb \
 	imx6q-dhcom-pdk2.dtb \
 	imx6q-display5.dtb \
+	imx6q-draeger-m48.dtb \
+	imx6q-draeger-valenka-ssppm.dtb \
+	imx6q-draeger-valenka-mount.dtb \
 	imx6q-gw51xx.dtb \
 	imx6q-gw52xx.dtb \
 	imx6q-gw53xx.dtb \

@@ -12,10 +12,16 @@
 #include <asm/mach-imx/mxc_i2c.h>
 #include <watchdog.h>
 
+/*
+ * The below implementation is a port of the I2C bus recovery
+ * procedure used in the function fslI2cRecoverBus of the Draeger
+ * version of the VxWorks driver
+ * os/drv/vxbus-99.1.0.6.0/drv-1.2.9.0/src/i2c/vxbFslI2c.c
+ */
 int force_idle_bus(void *priv)
 {
 	int i;
-	int sda, scl;
+	int sda, scl, outValue;
 	ulong elapsed, start_time;
 	struct i2c_pads_info *p = (struct i2c_pads_info *)priv;
 	int ret = 0;
@@ -29,17 +35,47 @@ int force_idle_bus(void *priv)
 	sda = gpio_get_value(p->sda.gp);
 	scl = gpio_get_value(p->scl.gp);
 	if ((sda & scl) == 1)
+	{
+		printf("%s: Bus is idle\n", __func__);
 		goto exit;		/* Bus is idle already */
+	}
 
 	printf("%s: sda=%d scl=%d sda.gp=0x%x scl.gp=0x%x\n", __func__,
 		sda, scl, p->sda.gp, p->scl.gp);
-	/* Send high and low on the SCL line */
-	for (i = 0; i < 9; i++) {
-		gpio_direction_output(p->scl.gp, 0);
+
+	outValue = 1;
+
+	gpio_direction_output(p->sda.gp, outValue);
+	udelay(50);
+	gpio_direction_output(p->scl.gp, outValue);
+	udelay(50);
+
+	/*
+	 * Send alternating highs and lows on the SCL line resulting in 9 clocks
+	 */
+	for (i = 0; i < 9 * 2; i++) {
+		if (outValue)
+		{
+			gpio_direction_input(p->scl.gp);
+			udelay(50);
+			scl = gpio_get_value(p->scl.gp);
+			udelay(50);
+
+			if (!scl)
+			{
+				printf("%s: scl is stuck\n", __func__);
+				goto exit;
+			}
+		}
+
+		outValue = !outValue;
+		gpio_direction_output(p->scl.gp, outValue);
 		udelay(50);
-		gpio_direction_input(p->scl.gp);
+		gpio_set_value(p->sda.gp, outValue);
 		udelay(50);
 	}
+	gpio_direction_input(p->sda.gp);
+	gpio_direction_input(p->scl.gp);
 	start_time = get_timer(0);
 	for (;;) {
 		sda = gpio_get_value(p->sda.gp);
@@ -52,9 +88,10 @@ int force_idle_bus(void *priv)
 			ret = -EBUSY;
 			printf("%s: failed to clear bus, sda=%d scl=%d\n",
 					__func__, sda, scl);
-			break;
+			goto exit;
 		}
 	}
+	printf("%s: succesfully cleared bus\n", __func__);
 exit:
 	imx_iomux_v3_setup_pad(p->sda.i2c_mode);
 	imx_iomux_v3_setup_pad(p->scl.i2c_mode);
@@ -97,14 +134,14 @@ int setup_i2c(unsigned i2c_index, int speed, int slave_addr,
 	if (ret)
 		goto err_clk;
 
-	/* Make sure bus is idle */
-	ret = force_idle_bus(p);
-	if (ret)
-		goto err_idle;
-
 #if !CONFIG_IS_ENABLED(DM_I2C)
 	bus_i2c_init(i2c_index, speed, slave_addr, force_idle_bus, p);
 #endif
+
+	/* Make sure bus is idle */
+	force_idle_bus(p);
+	if (ret)
+		goto err_idle;
 
 	return 0;
 

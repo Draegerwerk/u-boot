@@ -175,6 +175,8 @@ struct fixed_link {
 	int link_speed;
 	int pause;
 	int asym_pause;
+	int device_phandle_id;
+	struct udevice *devp;
 };
 
 /**
