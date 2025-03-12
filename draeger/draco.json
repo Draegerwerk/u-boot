@@ -1,0 +1,15 @@
+{
+    "version": "1.0.0",
+    "repos":
+    [
+        {
+            "url": "ssh://git@stash.draeger.com:7999/PLATFORM/plain.git",
+            "revision": "a76da2a6aa094c5be197e2557b6d4feec4d8b8f6"
+        },
+        {
+            "url": "ssh://git@stash.draeger.com:7999/platthirdparty/nxp_code_signing_tool.git",
+            "revision": "master",
+            "path": "thirdparty/nxp_code_signing_tool"
+        }
+    ]
+}

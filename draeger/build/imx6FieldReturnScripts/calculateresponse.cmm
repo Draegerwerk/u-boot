@@ -1,0 +1,10 @@
+; --------------------------------------------------------------------------------
+; @Props: NoMetaTags
+; @Copyright: (C) 1989-2014 Lauterbach GmbH, licensed for use with TRACE32(R) only
+; --------------------------------------------------------------------------------
+; $Id: calculateresponse.cmm 7723 2014-10-02 18:18:41Z amerkle $
+
+
+ENTRY &challenge
+&response=0x00000000000000
+ENDDO &response

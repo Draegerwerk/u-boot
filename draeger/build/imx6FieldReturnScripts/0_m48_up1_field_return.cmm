@@ -1,0 +1,41 @@
+; --------------------------------------------------------------------------------
+; @Title: Querry the UID of an closed imx6, to be able to perform field reset
+; @Description: 
+; This script tries to attach to a imx6 that is in closed security state with locked JTAG port
+; The Lauterbach will receive the devices UID as "challenge". This number is required to perform the field return procedure
+; @Keywords: Freescale, imx6, secure-jtag, SJC
+; @Author: auechris
+; @Chip: IMX6*
+; @Board: -
+
+RESET
+SYStem.Option EnReset OFF
+SCREEN.ALways
+AREA.reset
+; the custom area is required because otherwise the propriatary lauterbach script
+; imx6_attach_secured.cmm will clear the default area window once the attach failed
+area.create FIELDRETURN 100. 100.
+area.view FIELDRETURN
+area.select FIELDRETURN
+print %color.red "Challenge is the important number"
+print %color.red "Write it down byte-wise from right to left separated with commas"
+print %color.red "E.g. if the challenge looks like this:"
+print %color.red "Challenge : 0x0102030405060708"
+print %color.red "write it down like this"
+print %color.red "UID = 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01"
+print %color.red "The next steps need to be performed by the person with access to the Super Root Keys"
+print %color.red "Enter UID string in file \thirdparty\nxp_code_signing_tool\scripts\cst_sign_spl.sh"
+print %color.red "Build the U-Boot configuration 'make_up1_uboot_hab_revocation_test.cmd'"
+print %color.red "Sign the U-Boot with an SRK that has not yet been revoked"
+print %color.red "Use the HabRevocationTestKernel, and perform the field return option"
+print ""
+
+; can stay duallite even if performed with IMX6QUAD
+SYStem.CPU IMX6DUALLITE
+SYStem.Option DACR ON ; Give the debugger global write permissions
+SETUP.IMASKASM ON ; lock interrupts while single stepping assembler code
+
+; querry the information
+DO ~~~~/imx6_attach_secured.cmm ENRESET=OFF
+
+ENDDO

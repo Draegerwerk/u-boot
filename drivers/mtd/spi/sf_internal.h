@@ -76,6 +76,8 @@ extern const struct flash_info spi_nor_ids[];
 #define JEDEC_MFR(info)	((info)->id[0])
 #define JEDEC_ID(info)		(((info)->id[1]) << 8 | ((info)->id[2]))
 
+int spi_flash_cmd_reset(struct spi_nor *nor);
+
 /* Get software write-protect value (BP bits) */
 int spi_flash_cmd_get_sw_write_prot(struct spi_flash *flash);
 

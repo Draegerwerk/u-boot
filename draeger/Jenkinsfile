@@ -1,0 +1,192 @@
+String user = 'jenkins'
+String channel = ("${BRANCH_NAME}".toLowerCase().split('/').last()).take(48) + "${BUILD_NUMBER}"
+String credentials_id = 'uboot_conan'
+String GLOBAL_BUILD_NUMBER="0"
+String productId  = "${GLOBAL_BUILD_NUMBER}"
+String productZip = "UBoot-${productId}.zip"
+String tagPrefix  = 'release/uboot/'
+String tagPattern = tagPrefix + '([0-9]+\\.[0-9]+\\.[0-9]+)'
+boolean releasebuild = false
+
+pipeline {
+    libraries {
+       lib('platform_shared_library@c5cb25cd6f852e514dc2661b29f18888ebb2756f')
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10', artifactDaysToKeepStr: '14'))
+        timestamps()
+        parallelsAlwaysFailFast()
+        ansiColor('xterm')
+        skipStagesAfterUnstable()
+        timeout(time: 6, unit: 'HOURS', activity: true)
+    }
+
+    environment {
+        USER_CHANNEL = "${user}/${channel}"
+    }
+
+    agent none
+
+    stages {
+        stage('UBoot Package') {
+            agent {
+                node {
+                    label 'linux&&git&&docker&&amd64'
+                }
+            }
+            steps {
+                script {
+                    notifyBitbucket includeBuildNumberInKey: false
+
+                    sh 'mkdir -p bld'
+                    sh 'find bld -maxdepth 1 -type d ! -name \'bld\' -exec rm -rf {} \\; '
+                    dir('u-boot') {
+                        def BUILD_TAG  = sh(script: "git tag --contains HEAD | grep -E '${tagPrefix}' | tail -n 1", returnStdout: true).trim()
+                        def version    = sh(script: "grep -E 'VERSION\\s*=\\s*[0-9]+' Makefile | tr -d ' ' | cut -f 2 -d '='", returnStdout: true).trim()
+                        def patchlevel = sh(script: "grep -E 'PATCHLEVEL\\s*=\\s*[0-9]+' Makefile | tr -d ' ' | cut -f 2 -d '='", returnStdout: true).trim()
+                        def commit     = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+
+                        // does BUILD_TAG match the tagPattern ?
+                        def matcher = "${BUILD_TAG}" =~ "${tagPattern}"
+                        if (matcher) {
+                            GLOBAL_BUILD_NUMBER = matcher[0][1]
+                            releasebuild = true
+                        } else {
+                            GLOBAL_BUILD_NUMBER = "dev"
+                        }
+                        GLOBAL_BUILD_NUMBER += '+' + "${version}" + '.' + "${patchlevel}" + '.g' + "${commit}" 
+                        println "Extracted version: $GLOBAL_BUILD_NUMBER"
+
+                        if(releasebuild) {
+                            currentBuild.description = '<a href="https://artifactory.draeger.com:443/artifactory/tools-release-local/com/draeger/rnd/tools/UBoot/' +
+                                GLOBAL_BUILD_NUMBER + '">UBoot=' + GLOBAL_BUILD_NUMBER + '</a>'
+                        }
+                        productId  = "${GLOBAL_BUILD_NUMBER}"
+                        productZip = "UBoot-${productId}.zip"
+
+                        env.BUILD_TAG = "${GLOBAL_BUILD_NUMBER}"
+
+                        sh 'git clean -dfx'
+                    }
+                    dir('u-boot/draeger/build') {
+                        sh './startDockerContainer.sh -c ./build_all.sh'
+                        sh './createSBOM.sh'
+                        sh './startDockerContainer.sh -c mv ../../../buildenv.properties ../../../bld/bin/UBoot/source_version_info.txt'
+                        sh "./startDockerContainer.sh -c ./createZip.sh ${productZip}"
+                    }
+                    archiveArtifacts artifacts: 'bld/**/*.yml', followSymlinks: false, allowEmptyArchive: true
+                
+                    if (releasebuild) {
+                        rtBuildInfo (
+                            maxBuilds: 10,
+                            deleteBuildArtifacts: true
+                        )
+                        rtUpload(
+                            serverId: 'Draeger-Artifactory',
+                            spec: """
+                                {
+                                    "files": [
+                                        {
+                                            "pattern": "bld/bin/${productZip}",
+                                            "target": "tools-release-local/com/draeger/rnd/tools/UBoot/${productId}/",
+                                            "flat": true
+                                        }
+                                    ]
+                                }"""
+                        )
+                    }
+                }
+            }
+        }
+        stage('Record issues') {
+            agent {
+                node {
+                    label '(linux||windows)&&git'
+                }
+            }
+            steps {
+                recordIssues aggregatingResults: true,
+                tools: [
+                    armCc(reportEncoding: 'UTF-8'),
+                    gcc(reportEncoding: 'UTF-8'),
+                    taskScanner(
+                        highTags: 'FIXME',
+                        normalTags: 'TODO',
+                        lowTags: '@deprecated',
+                        ignoreCase: true,
+                        includePattern: [
+                            'u-boot/**',
+                            'u-boot/draeger/FPGA/m48_test/src/**'
+                        ].join(','),
+                        excludePattern: [
+                            '**/*.exe', '**/*.xzr',
+                            '**/*.ch1', '**/*.ch2',
+                            '**/*.a', '**/*.lib',
+                            '**/*.zip', '**/*.gz',
+                            '**/*.bmp', '**/*.jpg',
+                            '**/*.png', '**/*.gif',
+                            '**/*.obj', '**/*.docx'
+                        ].join(',')
+                    )
+                ],
+                filters: [
+                    excludeFile(/^.+\/Tools\/.+$/),
+                    excludeFile(/^.+\/tools\/.+$/),
+                    excludeFile(/^.+\/bin\/.+$/),
+                    excludeFile(/^.+\/lib\/.+$/),
+                    excludeFile(/^.+\/doc\/.+$/),
+                    excludeFile(/^.+\/scripts\/.+$/)
+                ],
+                sourceCodeEncoding: 'UTF-8',
+                sourceDirectories: [[path: 'u-boot']]
+            }
+        }
+        stage('OpenSource license list') {
+            when {
+                beforeAgent true
+                expression { releasebuild }
+            }
+            agent {
+                node {
+                    label 'linux&&git'
+                }
+            }
+            steps {
+                sh 'mkdir -p bld/UBootLicense'
+                dir('u-boot/Licenses') {
+                     sh "zip ${WORKSPACE}/bld/UBootLicense/Licenses.zip *"
+                }
+                dir('bld/UBootLicense/') {
+                    rtServer (
+                        id: 'uboot_license_upload',
+                        url: 'https://artifactory.draeger.com/artifactory',
+                        credentialsId: credentials_id,
+                        bypassProxy: true
+                    )
+                    rtUpload(
+                        serverId: 'uboot_license_upload',
+                        spec: """{
+                            "files": [
+                                {
+                                    "pattern": "*.zip",
+                                    "target": "conan-local-fuerth/license/uboot/${productId}/"
+                                }
+                            ]
+                        }"""
+                    )
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                node(null) {
+                    notifyBitbucket includeBuildNumberInKey: false
+                }
+            }
+        }
+    }
+}

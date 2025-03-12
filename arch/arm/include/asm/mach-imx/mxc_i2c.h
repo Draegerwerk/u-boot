@@ -56,6 +56,7 @@ struct mxc_i2c_bus {
 #if !CONFIG_IS_ENABLED(DM_I2C)
 	int (*idle_bus_fn)(void *p);
 	void *idle_bus_data;
+	int   init_done;
 #else
 	struct udevice *bus;
 	/* Use gpio to force bus idle when bus state is abnormal */

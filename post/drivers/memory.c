@@ -471,7 +471,7 @@ int arch_memory_test_prepare(u32 *vstart, u32 *size, phys_addr_t *phys_offset)
 
 	/* Limit area to be tested with the board info struct */
 	if ((*vstart) + (*size) > (ulong)bd)
-		*size = (ulong)bd - *vstart;
+		*size = (ulong)bd - *vstart - (1 << 20);
 
 	return 0;
 }
@@ -518,7 +518,7 @@ int memory_post_test(int flags)
 	arch_memory_test_prepare(&vstart, &memsize, &phys_offset);
 
 	do {
-		if (flags & POST_SLOWTEST) {
+		if (flags & (POST_SLOWTEST | POST_MANUAL)) {
 			ret = memory_post_tests(vstart, memsize);
 		} else {			/* POST_NORMAL */
 			ret = memory_post_test_regions(vstart, memsize);

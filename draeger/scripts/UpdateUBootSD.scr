@@ -1,0 +1,5 @@
+echo "Updating U-boot from SD-card"
+setexpr loadubootaddr ${loadaddr} + 0x1000
+echo "Load u-boot.imx at "
+echo ${loadubootaddr}
+if fatload mmc 0:1 ${loadubootaddr} u-boot.imx; then echo "load u-boot.imx succesful"; setexpr fw_sz ${filesize} / 0x200; setexpr fw_sz ${fw_sz} + 1; mmc write ${loadubootaddr} 0x2 ${fw_sz}; fi
