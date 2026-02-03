@@ -374,7 +374,7 @@ void setEnvBootArgs(const char *netDeviceName)
     netmask = env_get_hex("netmask", 0);
     snprintf(netmask_str, sizeof(netmask_str), "%08lx", netmask);
 
-    snprintf(cmdbuf, CMD_BUF_SIZE, "setenv bootargs \"%s(0,0)host:vxWorks h=%s e=%s:%s g=%s u=target pw=vxTarget\"",
+    snprintf(cmdbuf, CMD_BUF_SIZE, "setenv bootargs \"%s(0,0)host:vxWorks h=%s e=%s:%s g=%s \"",
              netDeviceName, serverip_str, ipaddr_str, netmask_str, gatewayip_str);
 
     run_command(cmdbuf, 0);
