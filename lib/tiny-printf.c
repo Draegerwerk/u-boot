@@ -8,6 +8,7 @@
  * Copyright (C) 2004,2008  Kustaa Nyholm
  */
 
+#include <config.h>
 #include <log.h>
 #include <serial.h>
 #include <stdarg.h>

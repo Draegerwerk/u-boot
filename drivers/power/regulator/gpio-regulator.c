@@ -7,6 +7,7 @@
 #include <fdtdec.h>
 #include <errno.h>
 #include <dm.h>
+#include <dm/pinctrl.h>
 #include <log.h>
 #include <asm/gpio.h>
 #include <linux/printk.h>
@@ -41,6 +42,8 @@ static int gpio_regulator_of_to_plat(struct udevice *dev)
 	/* Set type to gpio */
 	uc_pdata->type = REGULATOR_TYPE_GPIO;
 
+	pinctrl_select_state(dev, "default");
+
 	/*
 	 * Get gpio regulator gpio desc
 	 * Assuming one GPIO per regulator.
@@ -49,9 +52,20 @@ static int gpio_regulator_of_to_plat(struct udevice *dev)
 	 * gpios is presnt
 	 */
 	gpio = &plat->gpio;
-	ret = gpio_request_by_name(dev, "gpios", 0, gpio, GPIOD_IS_OUT);
-	if (ret)
+	/* ret = gpio_request_by_name(dev, "gpios", 0, gpio, GPIOD_IS_OUT); */
+	ret = gpio_request_by_name(dev, "gpios", 0, gpio, 0);
+	if (ret) {
 		debug("regulator gpio - not found! Error: %d", ret);
+		return ret;
+	} else {
+		if ( GPIOF_OUTPUT != gpio_get_function(gpio->dev, gpio->offset, NULL)) {
+			ret = dm_gpio_set_dir_flags(gpio, GPIOD_IS_OUT);
+			if (ret < 0)
+				return ret;
+		} else {
+			gpio->flags |= GPIOD_IS_OUT;
+		}
+	}
 
 	ret = dev_read_size(dev, "states");
 	if (ret < 0)

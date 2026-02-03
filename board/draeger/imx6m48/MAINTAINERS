@@ -1,0 +1,6 @@
+i.MX6 M48 BOARD
+M:	Olaf Bähring <olaf.baehring@draeger.com>
+S:	Maintained
+F:	board/draeger/imx6m48/
+F:	include/configs/draeger_imx6m48.h
+F:	configs/draeger_imx6m48_defconfig

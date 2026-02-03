@@ -240,7 +240,10 @@ static void mxc_serial_putc(const char c)
 		serial_putc('\r');
 
 	/* wait for transmitter to be ready */
-	while (readl(&mxc_base->ts) & UTS_TXFULL)
+	/* while (readl(&mxc_base->ts) & UTS_TXFULL)
+ 	   will produce garbage when TRDY is not set
+	*/
+	while (!(readl(&mxc_base->sr1) & USR1_TRDY))
 		schedule();
 
 	writel(c, &mxc_base->txd);
@@ -334,7 +337,11 @@ static int mxc_serial_putc(struct udevice *dev, const char ch)
 	struct mxc_serial_plat *plat = dev_get_plat(dev);
 	struct mxc_uart *const uart = plat->reg;
 
-	if (readl(&uart->ts) & UTS_TXFULL)
+    /* if (readl(&uart->ts) & UTS_TXFULL) 
+	   will produce garbage when TRDY is not set
+	*/
+	if ( ! (readl(&uart->sr1) & USR1_TRDY))
+	
 		return -EAGAIN;
 
 	writel(ch, &uart->txd);
