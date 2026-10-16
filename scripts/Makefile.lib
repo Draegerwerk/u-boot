@@ -229,6 +229,7 @@ upstream_dtsi_include = $(addprefix -I, $(srctree)/dts/upstream/src/ \
 		 $(sort $(dir $(wildcard $(srctree)/dts/upstream/src/arm64/*/*))) \
 		 $(sort $(dir $(wildcard $(srctree)/dts/upstream/src/arm64/*/*/*)))))
 dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
+		 $(KCFLAGS)                                         \
 		 $(UBOOTINCLUDE)                                         \
 		 -I$(dir $<)                                             \
 		 -I$(u_boot_dtsi_loc)                                     \

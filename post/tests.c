@@ -69,6 +69,9 @@ struct post_test post_list[] =
 	CFG_SYS_POST_CACHE
     },
 #endif
+#if CFG_POST & CFG_SYS_POST_BSPEC1
+	CFG_POST_BSPEC1,
+#endif
 #if CFG_POST & CFG_SYS_POST_WATCHDOG
 #if defined(CFG_POST_WATCHDOG)
 	CFG_POST_WATCHDOG,
@@ -114,7 +117,8 @@ struct post_test post_list[] =
 	"Memory test",
 	"memory",
 	"This test checks RAM.",
-	POST_ROM | POST_POWERON | POST_SLOWTEST | POST_PREREL,
+	/*	POST_ROM | POST_POWERON | POST_SLOWTEST | POST_PREREL, */
+    POST_RAM | POST_POWERON | POST_SLOWTEST | POST_MANUAL,
 	&memory_post_test,
 	NULL,
 	NULL,
@@ -247,9 +251,6 @@ struct post_test post_list[] =
 	CFG_SYS_POST_ECC
     },
 #endif
-#if CFG_POST & CFG_SYS_POST_BSPEC1
-	CFG_POST_BSPEC1,
-#endif
 #if CFG_POST & CFG_SYS_POST_BSPEC2
 	CFG_POST_BSPEC2,
 #endif
@@ -291,7 +292,8 @@ struct post_test post_list[] =
 	"Memory regions test",
 	"mem_regions",
 	"This test checks regularly placed regions of the RAM.",
-	POST_ROM | POST_SLOWTEST | POST_PREREL,
+	/*  POST_ROM | POST_SLOWTEST | POST_PREREL, */
+    POST_RAM | POST_SLOWTEST,
 	&memory_regions_post_test,
 	NULL,
 	NULL,

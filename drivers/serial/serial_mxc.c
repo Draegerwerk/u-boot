@@ -241,7 +241,10 @@ static void mxc_serial_putc(const char c)
 		serial_putc('\r');
 
 	/* wait for transmitter to be ready */
-	while (readl(&mxc_base->ts) & UTS_TXFULL)
+	/* while (readl(&mxc_base->ts) & UTS_TXFULL)
+ 	   will produce garbage when TRDY is not set
+	*/
+	while (!(readl(&mxc_base->sr1) & USR1_TRDY))
 		schedule();
 
 	writel(c, &mxc_base->txd);
@@ -315,14 +318,33 @@ static int mxc_serial_probe(struct udevice *dev)
 	struct mxc_serial_plat *plat = dev_get_plat(dev);
 #if CONFIG_IS_ENABLED(CLK_CCF)
 	int ret;
+	bool skip_clk_enable_during_prereloc;
 
-	ret = clk_get_bulk(dev, &plat->clks);
-	if (ret)
-		return ret;
+	/*
+	 * Some platforms (e.g., i.MX6) have UART clocks already enabled by
+	 * ROM/SPL. On these platforms, explicit clock enable during
+	 * pre-relocation triggers expensive clock parent chain probing
+	 * (IPG, AHB, PERIPH clocks), adding 20+ device probes and ~250ms
+	 * boot time overhead.
+	 *
+	 * Boards can set "u-boot,uart-clocks-pre-enabled" property in device
+	 * tree to skip clock enable during pre-relocation phase.
+	 *
+	 * Post-relocation, clocks are always enabled properly regardless of
+	 * this property.
+	 */
+	skip_clk_enable_during_prereloc = dev_read_bool(dev,
+					"u-boot,uart-clocks-pre-enabled");
 
-	ret = clk_enable_bulk(&plat->clks);
-	if (ret)
-		return ret;
+	if (!skip_clk_enable_during_prereloc || (gd->flags & GD_FLG_RELOC)) {
+		ret = clk_get_bulk(dev, &plat->clks);
+		if (ret)
+			return ret;
+
+		ret = clk_enable_bulk(&plat->clks);
+		if (ret)
+			return ret;
+	}
 #endif
 	_mxc_serial_init(plat->reg, plat->use_dte);
 
@@ -345,7 +367,11 @@ static int mxc_serial_putc(struct udevice *dev, const char ch)
 	struct mxc_serial_plat *plat = dev_get_plat(dev);
 	struct mxc_uart *const uart = plat->reg;
 
-	if (readl(&uart->ts) & UTS_TXFULL)
+    /* if (readl(&uart->ts) & UTS_TXFULL) 
+	   will produce garbage when TRDY is not set
+	*/
+	if ( ! (readl(&uart->sr1) & USR1_TRDY))
+	
 		return -EAGAIN;
 
 	writel(ch, &uart->txd);

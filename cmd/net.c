@@ -14,6 +14,7 @@
 #include <dm.h>
 #include <dm/devres.h>
 #include <env.h>
+#include <env_flags.h>
 #include <image.h>
 #include <log.h>
 #include <net.h>
@@ -179,6 +180,7 @@ U_BOOT_CMD(
 static void netboot_update_env(void)
 {
 	char tmp[46];
+	struct env_entry entry;
 
 	if (net_gateway.s_addr) {
 		ip_to_string(net_gateway, tmp);
@@ -186,10 +188,16 @@ static void netboot_update_env(void)
 	}
 
 	if (net_netmask.s_addr) {
-		ip_to_string(net_netmask, tmp);
-		env_set("netmask", tmp);
-	}
+		entry.key = "netmask";
+		env_flags_init(&entry);
 
+		if (entry.flags & env_flags_vartype_hex)
+			env_set_hex(entry.key, ntohl(net_netmask.s_addr));
+		else {
+			ip_to_string(net_netmask, tmp);
+			env_set(entry.key, tmp);
+		}
+	}
 #ifdef CONFIG_CMD_BOOTP
 	if (net_hostname[0])
 		env_set("hostname", net_hostname);

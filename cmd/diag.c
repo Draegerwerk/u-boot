@@ -7,6 +7,7 @@
 /*
  * Diagnostics support
  */
+#include <config.h>
 #include <command.h>
 #include <post.h>
 #include <linux/string.h>

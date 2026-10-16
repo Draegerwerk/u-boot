@@ -12,6 +12,8 @@ obj-$(CONFIG_$(PHASE_)DM_GPIO) += gpio-uclass.o
 obj-$(CONFIG_$(PHASE_)DWAPB_GPIO)	+= dwapb_gpio.o
 obj-$(CONFIG_$(PHASE_)DM_PCA953X)	+= pca953x_gpio.o
 
+obj-$(CONFIG_DWAPB_GPIO)	+= dwapb_gpio.o
+
 obj-$(CONFIG_ADI_GPIO)		+= gpio-adi-adsp.o
 obj-$(CONFIG_ASPEED_GPIO)	+= gpio-aspeed.o
 obj-$(CONFIG_ASPEED_G7_GPIO)	+= gpio-aspeed-g7.o

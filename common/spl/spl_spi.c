@@ -28,6 +28,7 @@ static ulong spl_spi_fit_read(struct spl_load_info *load, ulong sector,
 	ulong ret;
 
 	ret = spi_flash_read(flash, sector, count, buf);
+	spi_flash_reset(flash);
 	if (!ret)
 		return count;
 	else
@@ -104,16 +105,17 @@ static int spl_spi_load_image(struct spl_image_info *spl_image,
 	spl_load_init(&load, spl_spi_fit_read, flash, 1);
 
 #if CONFIG_IS_ENABLED(OS_BOOT)
-	if (!spl_start_uboot()) {
-		err = spl_spi_load_image_os(spl_image, bootdev, flash, &load);
+	if (spl_start_uboot()) {
+		int err = spl_load(spl_image, bootdev, &load, 0,
+				   CONFIG_SYS_SPI_KERNEL_OFFS);
 
 		if (!err)
-			return 0;
-
-		printf("%s: Failed in falcon boot: %d", __func__, err);
-		if (IS_ENABLED(CONFIG_SPL_OS_BOOT_SECURE))
+			/* Read device tree. */
+			err = spi_flash_read(flash, CONFIG_SYS_SPI_ARGS_OFFS,
+					      CONFIG_SYS_SPI_ARGS_SIZE,
+					      (void *)CONFIG_SPL_PAYLOAD_ARGS_ADDR);
+			spi_flash_reset(flash);
 			return err;
-		printf("Fallback to U-Boot\n");
 	}
 #endif
 

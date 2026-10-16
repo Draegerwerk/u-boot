@@ -827,14 +827,16 @@ static int spi_nor_sr_ready(struct spi_nor *nor)
 	if (sr < 0)
 		return sr;
 
-	if (nor->flags & SNOR_F_USE_CLSR && sr & (SR_E_ERR | SR_P_ERR)) {
-		if (sr & SR_E_ERR)
-			dev_dbg(nor->dev, "Erase Error occurred\n");
-		else
-			dev_dbg(nor->dev, "Programming Error occurred\n");
+	if (!(sr & SR_WIP) && nor->flags & SNOR_F_USE_CLSR) {
+		if ( sr & (SR_E_ERR | SR_P_ERR)) {
+			if (sr & SR_E_ERR)
+				dev_dbg(nor->dev, "Erase Error occurred\n");
+			else
+				dev_dbg(nor->dev, "Programming Error occurred\n");
 
-		nor->write_reg(nor, SPINOR_OP_CLSR, NULL, 0);
-		return -EIO;
+			nor->write_reg(nor, SPINOR_OP_CLSR, NULL, 0);
+			return -EIO;
+		}
 	}
 
 	return !(sr & SR_WIP);

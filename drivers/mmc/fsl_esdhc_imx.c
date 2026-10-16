@@ -1256,12 +1256,10 @@ static int fsl_esdhc_init(struct fsl_esdhc_priv *priv,
 			esdhc_write32(&regs->tuning_ctrl, val);
 		}
 
-		/*
-		 * UHS doesn't have explicit ESDHC flags, so if it's
-		 * not supported, disable it in config.
-		 */
-		if (CONFIG_IS_ENABLED(MMC_UHS_SUPPORT))
-			cfg->host_caps |= UHS_CAPS;
+		if (CONFIG_IS_ENABLED(MMC_UHS_SUPPORT)) {
+			if (priv->flags & ESDHC_FLAG_HAVE_UHS_CAPS)
+				cfg->host_caps |= UHS_CAPS;
+		}
 
 		if (CONFIG_IS_ENABLED(MMC_HS200_SUPPORT)) {
 			if (priv->flags & ESDHC_FLAG_HS200)
@@ -1641,22 +1639,26 @@ static const struct dm_mmc_ops fsl_esdhc_ops = {
 	.reinit = fsl_esdhc_reinit,
 };
 
+static struct esdhc_soc_data usdhc_imx6_data = {
+    .flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING,
+};
+
 static struct esdhc_soc_data usdhc_imx7d_data = {
 	.flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING
 			| ESDHC_FLAG_HAVE_CAP1 | ESDHC_FLAG_HS200
-			| ESDHC_FLAG_HS400,
+			| ESDHC_FLAG_HS400 | ESDHC_FLAG_HAVE_UHS_CAPS,
 };
 
 static struct esdhc_soc_data usdhc_imx7ulp_data = {
 	.flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING
 			| ESDHC_FLAG_HAVE_CAP1 | ESDHC_FLAG_HS200
-			| ESDHC_FLAG_HS400,
+			| ESDHC_FLAG_HS400 | ESDHC_FLAG_HAVE_UHS_CAPS,
 };
 
 static struct esdhc_soc_data usdhc_imx8qm_data = {
 	.flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING |
 		ESDHC_FLAG_HAVE_CAP1 | ESDHC_FLAG_HS200 |
-		ESDHC_FLAG_HS400 | ESDHC_FLAG_HS400_ES,
+		ESDHC_FLAG_HS400 | ESDHC_FLAG_HS400_ES | ESDHC_FLAG_HAVE_UHS_CAPS,
 };
 
 static const struct udevice_id fsl_esdhc_ids[] = {
@@ -1666,6 +1668,7 @@ static const struct udevice_id fsl_esdhc_ids[] = {
 	{ .compatible = "fsl,imx6sx-usdhc", },
 	{ .compatible = "fsl,imx6sl-usdhc", },
 	{ .compatible = "fsl,imx6q-usdhc", },
+	{ .compatible = "fsl,imx6qp-usdhc", .data = (ulong)&usdhc_imx6_data,},
 	{ .compatible = "fsl,imx7d-usdhc", .data = (ulong)&usdhc_imx7d_data,},
 	{ .compatible = "fsl,imx7ulp-usdhc", .data = (ulong)&usdhc_imx7ulp_data,},
 	{ .compatible = "fsl,imx8qm-usdhc", .data = (ulong)&usdhc_imx8qm_data,},

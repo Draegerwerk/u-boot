@@ -130,6 +130,10 @@ void board_init_f(ulong dummy)
 	/* unfreeze / thaw all IO banks */
 	sys_mgr_frzctrl_thaw_req();
 
+#ifdef CONFIG_TARGET_SOCFPGA_CYCLONE5_M48
+	board_early_init_f();
+#endif
+
 #ifdef CONFIG_DEBUG_UART
 	socfpga_per_reset(SOCFPGA_RESET(UART0), 0);
 	debug_uart_init();

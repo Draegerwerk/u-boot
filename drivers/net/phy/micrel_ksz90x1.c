@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <micrel.h>
 #include <phy.h>
+#include <linux/delay.h>
 
 /*
  * KSZ9021 - KSZ9031 common
@@ -37,6 +38,14 @@
 #define KSZ9021_PS_TO_REG		120
 
 /* KSZ9031 PHY Registers */
+#define STAT1000_MS_CONF_FAULT		(1 << 15)
+#define STAT1000_MS_LOCAL_RES		(1 << 14)
+#define STAT1000_LOCAL_RCVR 		(1 << 13)
+#define STAT1000_REMOTE_RCVR		(1 << 12)
+#define STAT1000_LP_1000_FD 		(1 << 11)
+#define STAT1000_LP_1000_HD 		(1 << 10)
+#define STAT1000_IDLE_ERR_CNT		0x00ff
+
 #define MII_KSZ9031_MMD_ACCES_CTRL	0x0d
 #define MII_KSZ9031_MMD_REG_DATA	0x0e
 
@@ -44,14 +53,59 @@
 
 static int ksz90xx_startup(struct phy_device *phydev)
 {
+	unsigned mii_reg;
+	unsigned stat1000;
 	unsigned phy_ctl;
+
 	int ret;
+	int retries;
 
-	ret = genphy_update_link(phydev);
-	if (ret)
-		return ret;
+	for (retries = 6; retries; retries--) {
+		ret = genphy_update_link(phydev);
+		if (ret)
+			return ret;
 
-	phy_ctl = phy_read(phydev, MDIO_DEVAD_NONE, MII_KSZ90xx_PHY_CTL);
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
+		/* The STAT1000_IDLE_ERR_CNT is self clearing, therefore read twice to get current value */
+		(void)phy_read(phydev, MDIO_DEVAD_NONE, MII_STAT1000);
+		stat1000 = phy_read(phydev, MDIO_DEVAD_NONE, MII_STAT1000);
+		phy_ctl = phy_read(phydev, MDIO_DEVAD_NONE, MII_KSZ90xx_PHY_CTL);
+
+		/* Iff PHY reports
+		 * - Auto negotiation is not completed, or
+		 * - 1Gbps Local Reveiver Status not OK, or
+		 * - 1Gbps only receiving errored symbols, or
+		 * - No speed setting achieved, then
+		 * restart auto negotiation
+		 */
+		if (!(mii_reg & BMSR_ANEGCOMPLETE) ||
+				((phy_ctl & (MIIM_KSZ90xx_PHYCTL_1000)) && (
+                    ((stat1000 & STAT1000_LOCAL_RCVR) != STAT1000_LOCAL_RCVR) ||
+                    ((stat1000 & STAT1000_REMOTE_RCVR) != STAT1000_REMOTE_RCVR) ||
+					(stat1000 & STAT1000_IDLE_ERR_CNT) == 0xFF)) ||
+				(phy_ctl & (MIIM_KSZ90xx_PHYCTL_1000 | MIIM_KSZ90xx_PHYCTL_100 | MIIM_KSZ90xx_PHYCTL_10)) == 0) {
+
+		    if ( ( (phy_ctl & MIIM_KSZ90xx_PHYCTL_1000) &&
+		        (((stat1000 & STAT1000_REMOTE_RCVR) != STAT1000_REMOTE_RCVR) &&
+		            ((stat1000 & STAT1000_LOCAL_RCVR) == STAT1000_LOCAL_RCVR) &&
+		            ((stat1000 & STAT1000_IDLE_ERR_CNT) != 0xFF))) &&
+		        (retries % 3) != 1)
+		    {
+		        printf("ksz90xx_startup = %04x/%04x/%04x  remote receiver error, wait another while\n", mii_reg, stat1000, phy_ctl);
+                mdelay(500); /* 500 ms */
+		    } else {
+                printf("ksz90xx_startup = %04x/%04x/%04x  restart auto negotiation\n", mii_reg, stat1000, phy_ctl);
+                ret = genphy_restart_aneg(phydev);
+                if (ret)
+                    return ret;
+		    }
+		} else {
+			break;
+		}
+	}
+
+	if (retries == 0)
+		return -EIO;
 
 	if (phy_ctl & MIIM_KSZ90xx_PHYCTL_DUPLEX)
 		phydev->duplex = DUPLEX_FULL;
@@ -369,6 +423,12 @@ static int ksz9031_config(struct phy_device *phydev)
 		genphy_restart_aneg(phydev);
 
 		return 0;
+	}  else {
+		unsigned ctrl1000 = phy_read(phydev, MDIO_DEVAD_NONE, MII_CTRL1000);
+		/* force manual configuration to slave in master-slave negotiation */
+		ctrl1000 &= ~(CTRL1000_CONFIG_MASTER | CTRL1000_PREFER_MASTER);
+		ctrl1000 |= CTRL1000_MANUAL_CONFIG;
+		phy_write(phydev, MDIO_DEVAD_NONE, MII_CTRL1000, ctrl1000);
 	}
 
 	return genphy_config(phydev);

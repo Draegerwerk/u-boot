@@ -21,6 +21,7 @@ struct dm_spi_flash_ops {
 	int (*write)(struct udevice *dev, u32 offset, size_t len,
 		     const void *buf);
 	int (*erase)(struct udevice *dev, u32 offset, size_t len);
+	int	(*reset)(struct udevice *dev);
 	/**
 	 * get_sw_write_prot() - Check state of software write-protect feature
 	 *
@@ -76,6 +77,15 @@ int spi_flash_write_dm(struct udevice *dev, u32 offset, size_t len,
 int spi_flash_erase_dm(struct udevice *dev, u32 offset, size_t len);
 
 /**
+ * spi_flash_reset_dm() - Reset the SPI flash to avoid blocking in case of
+ *                        unexpected restart
+ *
+ * @dev:	SPI flash device
+ * @return 0 if OK, -ve on error
+ */
+int spi_flash_reset_dm(struct udevice *dev);
+
+/**
  * spl_flash_get_sw_write_prot() - Check state of software write-protect feature
  *
  * SPI flash chips can lock a region of the flash defined by a
@@ -129,6 +139,11 @@ static inline int spi_flash_erase(struct spi_flash *flash, u32 offset,
 				  size_t len)
 {
 	return spi_flash_erase_dm(flash->dev, offset, len);
+}
+
+static inline int spi_flash_reset(struct spi_flash *flash)
+{
+	return spi_flash_reset_dm(flash->dev);
 }
 
 struct sandbox_state;
@@ -222,6 +237,13 @@ static inline int spi_flash_erase(struct spi_flash *flash, u32 offset,
 
 	return mtd->_erase(mtd, &instr);
 }
+
+static inline int spi_flash_reset(struct spi_flash *flash)
+{
+	if (flash->reset) return flash->reset(flash);
+	return 0;
+}
+
 #endif
 
 static inline int spi_flash_protect(struct spi_flash *flash, u32 ofs, u32 len,

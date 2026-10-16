@@ -221,6 +221,7 @@
 #define	ESDHC_FLAG_HS400		BIT(9)
 #define	ESDHC_FLAG_ERR010450		BIT(10)
 #define	ESDHC_FLAG_HS400_ES		BIT(11)
+#define	ESDHC_FLAG_HAVE_UHS_CAPS	BIT(12)
 
 struct fsl_esdhc_cfg {
 	phys_addr_t esdhc_base;

@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ *  (C) Copyright 2020 Draeger and Licensors, info@draeger.com
+ */
+
+#include "socfpga-common-u-boot.dtsi"
+
+/{
+    aliases {
+        spi0 = "/soc/spi@ff705000";
+    };
+    config {
+#ifdef LEGACY_BOOT
+       bootcmd = "startM48;errorMsg";
+#else
+       bootcmd = "startKernel;errorMsg";
+#endif
+    };
+};
+
+&watchdog0 {
+    status = "disabled";
+};
+
+&mmc {
+    bootph-all;
+};
+
+&qspi {
+    bootph-all;
+};
+
+&gpio0 {
+    status = "okay";
+    bootph-all;
+};
+
+&gpio1 {
+    status = "okay";
+    bootph-all;
+};
+
+&gpio2 {
+    status = "okay";
+    bootph-all;
+};
+
+&uart0 {
+    clock-frequency = <100000000>;
+    bootph-all;
+};
+
+&porta {
+    bank-name = "GPIO0_";
+    bootph-all;
+};
+
+&portb {
+    bank-name = "GPIO1_";
+    bootph-all;
+};
+
+&portc {
+    bank-name = "GPIO2_";
+    bootph-all;
+};

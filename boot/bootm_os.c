@@ -23,6 +23,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#define AMOUNT_INCREASE_FDT_SIZE 512
+
 static int do_bootm_standalone(int flag, struct bootm_info *bmi)
 {
 	struct bootm_headers *images = bmi->images;
@@ -271,14 +273,47 @@ static void do_bootvx_fdt(struct bootm_headers *images)
 		/* Update ethernet nodes */
 		fdt_fixup_ethernet(*of_flat_tree);
 
+#ifdef CONFIG_OF_BOARD_SETUP
+		ret = ft_board_setup(*of_flat_tree, gd->bd);
+		if (ret) {
+			printf("## ERROR: %s board-specific fdt fixup failed: %s\n",
+					__func__, fdt_strerror(ret));
+			return;
+		}
+#endif
+
+		bootvx_add_subnode:
+
 		ret = fdt_add_subnode(*of_flat_tree, 0, "chosen");
+
+		if (ret == -FDT_ERR_NOSPACE) {
+			debug("%s : fdt_increase_size by %d\n", __func__, AMOUNT_INCREASE_FDT_SIZE);
+			ret = fdt_increase_size(*of_flat_tree, AMOUNT_INCREASE_FDT_SIZE);
+
+			if (!ret) {
+				goto bootvx_add_subnode;
+			}
+		}
+
 		if ((ret >= 0 || ret == -FDT_ERR_EXISTS)) {
 			bootline = env_get("bootargs");
 			if (bootline) {
+				bootvx_setprop:
+
 				ret = fdt_find_and_setprop(*of_flat_tree,
 						"/chosen", "bootargs",
 						bootline,
 						strlen(bootline) + 1, 1);
+
+				if (ret == -FDT_ERR_NOSPACE) {
+					debug("%s : fdt_increase_size by %d\n", __func__, AMOUNT_INCREASE_FDT_SIZE);
+					ret = fdt_increase_size(*of_flat_tree, AMOUNT_INCREASE_FDT_SIZE);
+
+					if (!ret) {
+						goto bootvx_setprop;
+					}
+				}
+
 				if (ret < 0) {
 					printf("## ERROR: %s : %s\n", __func__,
 					       fdt_strerror(ret));

@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2026 Draeger and Licensors, info@draeger.com
+ *
+ * U-Boot specific device tree configuration for M48 board.
+ * Optimizes boot time by skipping redundant UART clock enable during
+ * pre-relocation (clocks already enabled by ROM/SPL).
+ */
+
+#include "imx6qdl-u-boot.dtsi"
+
+&uart1 {
+	/*
+	 * UART clocks are already enabled by ROM/SPL on i.MX6.
+	 * Skip explicit clock enable during pre-relocation to avoid expensive
+	 * clock parent chain probing (IPG, AHB, PERIPH clocks) which adds
+	 * ~20+ device probes and ~250ms boot time overhead.
+	 */
+	u-boot,uart-clocks-pre-enabled;
+};

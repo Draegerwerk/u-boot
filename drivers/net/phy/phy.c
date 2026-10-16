@@ -268,10 +268,34 @@ int genphy_update_link(struct phy_device *phydev)
 			if ((i++ % 10) == 0)
 				printf(".");
 
-			mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
 			mdelay(50);	/* 50 ms */
+			mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_BMSR);
 		}
 		printf(" done\n");
+#if 1
+		printf("%s BMSR: %04X ", phydev->dev->name, mii_reg);
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_LPA);
+		printf("LPA: %04X ", mii_reg);
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_EXPANSION);
+		printf("EXP: %04X ", mii_reg);
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_CTRL1000);
+		printf("CTRL1000: %04X ", mii_reg);
+		/* Idle Error Count is self cleared */
+		phy_read(phydev, MDIO_DEVAD_NONE, MII_STAT1000);
+        mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_STAT1000);
+		printf("STAT1000: %04X ", mii_reg);
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MII_ESTATUS);
+		printf("ESTATUS: %04X\n", mii_reg);
+		/* KSZ9031RN specific registers */
+		/* Clear Reserved Latch High bits */
+		phy_read(phydev, MDIO_DEVAD_NONE, 0x1f);
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, 0x1f);
+		printf("%s KSZ_PHY_CTL: %04X ", phydev->dev->name, mii_reg);
+		/* Clear Reserved Latch High bits */
+		phy_read(phydev, MDIO_DEVAD_NONE, 0x13);
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, 0x13);
+		printf("KSZ_PMA_PCS_STAT: %04X\n", mii_reg);
+#endif
 		phydev->link = 1;
 	} else {
 		/* Read the link a second time to clear the latched state */

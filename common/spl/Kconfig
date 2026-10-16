@@ -554,10 +554,6 @@ config SPL_SYS_MMCSD_RAW_MODE
 
 if SPL_SYS_MMCSD_RAW_MODE
 
-choice
-	prompt "Method for locating next phase of boot (e.g. U-Boot)"
-	default SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR if MVEBU_SPL_BOOT_DEVICE_MMC
-
 config SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
 	bool "MMC raw mode: by sector"
 	select SPL_LOAD_BLOCK
@@ -578,8 +574,6 @@ config SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION_TYPE
 	  Use partition type for specifying U-Boot partition on MMC/SD in
 	  raw mode. U-Boot will be loaded from the first partition of this
 	  type to be found.
-
-endchoice
 
 config SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR
 	hex "Address on the MMC to load U-Boot from"

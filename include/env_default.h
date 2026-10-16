@@ -29,9 +29,11 @@ const char default_environment[] = {
 #endif
 #ifndef CONFIG_ENV_USE_DEFAULT_ENV_TEXT_FILE
 #ifdef	CONFIG_ENV_CALLBACK_LIST_DEFAULT
+#error "Will break interface m48UBootEnvironmentUpdateUsrSpc.c: M48_UBOOT_DEFAULT_ENV_FIRST_ENTRY"
 	ENV_CALLBACK_VAR "=" CONFIG_ENV_CALLBACK_LIST_DEFAULT "\0"
 #endif
 #ifdef	CONFIG_ENV_FLAGS_LIST_DEFAULT
+#error "Will break interface m48UBootEnvironmentUpdateUsrSpc.c: M48_UBOOT_DEFAULT_ENV_FIRST_ENTRY"
 	ENV_FLAGS_VAR "=" CONFIG_ENV_FLAGS_LIST_DEFAULT "\0"
 #endif
 #ifdef	CONFIG_USE_BOOTARGS
